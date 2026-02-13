@@ -3,27 +3,21 @@
 #
 FROM maven:3.9.6-eclipse-temurin-8 AS build
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ca-certificates-java \
-        maven && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    update-ca-certificates -f
-
 WORKDIR /opt/shipping
 
-COPY pom.xml /opt/shipping/
-RUN mvn dependency:resolve
-COPY src /opt/shipping/src/
-RUN mvn package
+# Copy only pom.xml first for better caching
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
+
+# Copy source and build
+COPY src ./src
+RUN mvn -B package
+
 
 #
 # Run
 #
 FROM eclipse-temurin:8-jdk
-
-EXPOSE 8080
 
 WORKDIR /opt/shipping
 
@@ -32,5 +26,8 @@ ENV DB_HOST=mysql
 
 COPY --from=build /opt/shipping/target/shipping-1.0.jar shipping.jar
 
-CMD [ "java", "-Xmn256m", "-Xmx768m", "-jar", "shipping.jar" ]
+EXPOSE 8080
+
+CMD ["java", "-Xmn256m", "-Xmx768m", "-jar", "shipping.jar"]
+
 
