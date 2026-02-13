@@ -34,5 +34,5 @@ jobs:
             --exclude="vendor" \
             --exclude="node_modules" \
             ./ \
-            ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SERVER_IP }}:${{ secrets.DEV_APP_PATH }}
+            ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SERVER_IP }}:${{ secrets.DEV_APP_PATH }}/
 
