@@ -3,7 +3,7 @@ services:
   mongodb:
     build:
       context: mongo
-    image: ${REPO}/rs-mongodb:${TAG}
+      dockerfile: Dockerfile  
     networks:
       - robot-shop
     logging: &logging
@@ -26,7 +26,7 @@ services:
   catalogue:
     build:
       context: catalogue
-    image: ${REPO}/rs-catalogue:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - mongodb
     networks:
@@ -41,7 +41,7 @@ services:
   user:
     build:
       context: user
-    image: ${REPO}/rs-user:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - mongodb
       - redis
@@ -57,7 +57,7 @@ services:
   cart:
     build:
       context: cart
-    image: ${REPO}/rs-cart:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - redis
     networks:
@@ -72,7 +72,9 @@ services:
   mysql:
     build:
       context: mysql
-    image: ${REPO}/rs-mysql-db:${TAG}
+      dockerfile: Dockerfile
+    env_file:
+      - ./mysql/.env  
     cap_add:
       - NET_ADMIN
     networks:
@@ -82,7 +84,7 @@ services:
   shipping:
     build:
       context: shipping
-    image: ${REPO}/rs-shipping:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - mysql
     networks:
@@ -97,7 +99,7 @@ services:
   ratings:
     build:
       context: ratings
-    image: ${REPO}/rs-ratings:${TAG}
+      dockerfile: Dockerfile
     environment:
       APP_ENV: prod
     networks:
@@ -114,7 +116,7 @@ services:
   payment:
     build:
       context: payment
-    image: ${REPO}/rs-payment:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - rabbitmq
     networks:
@@ -132,7 +134,7 @@ services:
   dispatch:
     build:
       context: dispatch
-    image: ${REPO}/rs-dispatch:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - rabbitmq
     networks:
@@ -145,7 +147,7 @@ services:
       args:
         # agent key to download tracing libs
         KEY: ${INSTANA_AGENT_KEY}
-    image: ${REPO}/rs-web:${TAG}
+      dockerfile: Dockerfile
     depends_on:
       - catalogue
       - user
