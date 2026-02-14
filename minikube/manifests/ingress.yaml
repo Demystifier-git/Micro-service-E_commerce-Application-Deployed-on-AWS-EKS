@@ -7,13 +7,12 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: 3.80.160.124   # your VM public IP
-    http:
+  - http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: web       # your web service
+            name: web
             port:
-              number: 8080
+              number: 80
