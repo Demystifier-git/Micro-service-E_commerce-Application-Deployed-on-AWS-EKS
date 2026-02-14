@@ -34,20 +34,7 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
-          readinessProbe:
-            httpGet:
-              path: /health   # adjust if your app has a different health endpoint
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 3
+          
           resources:
             requests:
               cpu: "250m"
