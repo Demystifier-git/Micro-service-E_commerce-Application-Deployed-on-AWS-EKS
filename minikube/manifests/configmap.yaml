@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flyway-migrations
+data:
+  V1__init.sql: |
+    -- Create database
+    CREATE DATABASE IF NOT EXISTS ratings CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    -- Use the database
+    USE ratings;
+
+    -- Create table
+    CREATE TABLE IF NOT EXISTS ratings (
+        sku VARCHAR(80) NOT NULL,
+        avg_rating DECIMAL(3,2) NOT NULL,
+        rating_count INT NOT NULL,
+        PRIMARY KEY (sku)
+    ) ENGINE=InnoDB;
+
+    -- Create user and grant privileges
+    CREATE USER IF NOT EXISTS 'ratings'@'%' IDENTIFIED BY 'iloveit';
+    GRANT ALL PRIVILEGES ON ratings.* TO 'ratings'@'%';
+    FLUSH PRIVILEGES;
