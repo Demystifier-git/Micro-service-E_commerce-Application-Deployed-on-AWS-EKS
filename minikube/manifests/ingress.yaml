@@ -3,65 +3,66 @@ kind: Ingress
 metadata:
   name: web-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/rewrite-target: /  # rewrite all /api/... to root of backend
 spec:
   ingressClassName: nginx
   rules:
   - http:
       paths:
-      - path: /(/|$)(.*)
+      - path: /
         pathType: Prefix
         backend:
           service:
             name: web
             port:
               number: 80
-      - path: /api/user(/|$)(.*)
-        pathType: Prefix
+      - path: /api/user
+        pathType: ImplementationSpecific
         backend:
           service:
             name: user
             port:
               number: 80
-      - path: /api/cart(/|$)(.*)
-        pathType: Prefix
+      - path: /api/cart
+        pathType: ImplementationSpecific
         backend:
           service:
             name: cart
             port:
               number: 80
-      - path: /api/catalogue(/|$)(.*)
-        pathType: Prefix
+      - path: /api/catalogue
+        pathType: ImplementationSpecific
         backend:
           service:
             name: catalogue
             port:
               number: 80
-      - path: /api/ratings(/|$)(.*)
-        pathType: Prefix
+      - path: /api/ratings
+        pathType: ImplementationSpecific
         backend:
           service:
             name: ratings
             port:
               number: 80
-      - path: /api/payment(/|$)(.*)
-        pathType: Prefix
+      - path: /api/payment
+        pathType: ImplementationSpecific
         backend:
           service:
             name: payment
             port:
               number: 80
-      - path: /api/dispatch(/|$)(.*)
-        pathType: Prefix
+      - path: /api/dispatch
+        pathType: ImplementationSpecific
         backend:
           service:
             name: dispatch
             port:
               number: 80
-      - path: /api/shipping(/|$)(.*)
-        pathType: Prefix
+      - path: /api/shipping
+        pathType: ImplementationSpecific
         backend:
           service:
             name: shipping
             port:
               number: 80
+
