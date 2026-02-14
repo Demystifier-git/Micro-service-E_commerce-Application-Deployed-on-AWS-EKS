@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-catalogue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-catalogue
+  template:
+    metadata:
+      labels:
+        app: ubuntu-catalogue
+    spec:
+      containers:
+        - name: ubuntu-catalogue
+          image: ubuntu-catalogue:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+          readinessProbe:
+            httpGet:
+              path: /health   # adjust if your app uses a different endpoint
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"      # minimum CPU guaranteed
+              memory: "256Mi"  # minimum memory guaranteed
+            limits:
+              cpu: "500m"      # max CPU this container can use
+              memory: "512Mi"  # max memory this container can use
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-catalogue
+spec:
+  type: NodePort
+  selector:
+    app: ubuntu-catalogue
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30083

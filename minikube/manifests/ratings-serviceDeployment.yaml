@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-ratings
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-ratings
+  template:
+    metadata:
+      labels:
+        app: ubuntu-ratings
+    spec:
+      containers:
+        - name: ubuntu-ratings
+          image: ubuntu-ratings:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-password
+          readinessProbe:
+            tcpSocket:
+              port: 3306   # checks if MySQL connection is available
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-ratings
+spec:
+  type: NodePort
+  selector:
+    app: ubuntu-ratings
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30084

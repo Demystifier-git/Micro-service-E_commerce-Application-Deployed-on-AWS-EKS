@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-user
+  template:
+    metadata:
+      labels:
+        app: ubuntu-user
+    spec:
+      containers:
+        - name: ubuntu-user
+          image: ubuntu-user:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          readinessProbe:
+            httpGet:
+              path: /health   # adjust if your app has a different health endpoint
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+       
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-user
+spec:
+  type: NodePort
+  selector:
+    app: ubuntu-user
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30081

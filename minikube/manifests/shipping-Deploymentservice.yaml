@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-shipping
+  labels:
+    app: ubuntu-shipping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-shipping
+  template:
+    metadata:
+      labels:
+        app: ubuntu-shipping
+    spec:
+      containers:
+        - name: ubuntu-shipping
+          image: ubuntu-shipping:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-password  
+          
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - nc -z mysql 3306
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3  
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-shipping
+spec:
+  type: ClusterIP
+  selector:
+    app: ubuntu-shipping
+  ports:
+    - port: 80
+      targetPort: 8080
