@@ -13,8 +13,8 @@ spec:
         app: ubuntu-catalogue
     spec:
       containers:
-        - name: ubuntu-catalogue:v1
-          image: ubuntu-catalogue:latest
+        - name: ubuntu-catalogue
+          image: ubuntu-catalogue:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
