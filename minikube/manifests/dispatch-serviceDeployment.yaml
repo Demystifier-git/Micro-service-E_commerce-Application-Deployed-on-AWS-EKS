@@ -42,7 +42,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ubuntu-dispatch
+  name: dispatch
 spec:
   type: NodePort
   selector:
