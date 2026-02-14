@@ -14,49 +14,49 @@ spec:
             name: web
             port:
               number: 80
-      - path: /api/user
+      - path: /user
         pathType: Prefix
         backend:
           service:
             name: user
             port:
               number: 80
-      - path: /api/cart
+      - path: /cart
         pathType: Prefix
         backend:
           service:
             name: cart
             port:
               number: 80
-      - path: /api/catalogue
+      - path: /catalogue
         pathType: Prefix
         backend:
           service:
             name: catalogue
             port:
               number: 80
-      - path: /api/ratings
+      - path: /ratings
         pathType: Prefix
         backend:
           service:
             name: ratings
             port:
               number: 80
-      - path: /api/payment
+      - path: /payment
         pathType: Prefix
         backend:
           service:
             name: payment
             port:
               number: 80
-      - path: /api/dispatch
+      - path: /dispatch
         pathType: Prefix
         backend:
           service:
             name: dispatch
             port:
               number: 80
-      - path: /api/shipping
+      - path: /shipping
         pathType: Prefix
         backend:
           service:
