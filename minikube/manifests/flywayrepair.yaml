@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flyway-repair
+spec:
+  template:
+    spec:
+      containers:
+        - name: flyway
+          image: flyway/flyway:9
+          command: ["flyway"]
+          args:
+            - -url=jdbc:mysql://mysql-0.mysql:3306/mydb?allowPublicKeyRetrieval=true&useSSL=false
+            - -user=$(MYSQL_USER)
+            - -password=$(MYSQL_PASSWORD)
+            - repair
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-password
+      restartPolicy: Never
