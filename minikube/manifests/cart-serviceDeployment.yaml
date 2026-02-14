@@ -13,7 +13,7 @@ spec:
         app: ubuntu-cart
     spec:
       containers:
-        - name: ubuntu-cart
+        - name: ubuntu-cart:v1
           image: ubuntu-cart:latest
           imagePullPolicy: IfNotPresent
           ports:

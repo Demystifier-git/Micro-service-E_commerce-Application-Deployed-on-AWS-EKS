@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-ratings
-          image: ubuntu-ratings:latest
+          image: ubuntu-ratings:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

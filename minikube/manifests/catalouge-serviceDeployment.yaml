@@ -13,7 +13,7 @@ spec:
         app: ubuntu-catalogue
     spec:
       containers:
-        - name: ubuntu-catalogue
+        - name: ubuntu-catalogue:v1
           image: ubuntu-catalogue:latest
           imagePullPolicy: IfNotPresent
           ports:
@@ -29,20 +29,7 @@ spec:
                 secretKeyRef:
                   name: mongodb-secret
                   key: mongo-root-password
-          readinessProbe:
-            httpGet:
-              path: /health   # adjust if your app uses a different endpoint
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 3
+          
           resources:
             requests:
               cpu: "250m"      # minimum CPU guaranteed

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-web
-          image: ubuntu-web:latest
+          image: ubuntu-web:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

@@ -13,7 +13,7 @@ spec:
         app: ubuntu-dispatch
     spec:
       containers:
-        - name: ubuntu-dispatch
+        - name: ubuntu-dispatch:v1
           image: ubuntu-dispatch:latest
           imagePullPolicy: IfNotPresent
           ports:

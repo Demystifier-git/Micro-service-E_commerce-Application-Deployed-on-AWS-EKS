@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-payment
-          image: ubuntu-payment:latest
+          image: ubuntu-payment:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
