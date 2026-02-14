@@ -10,7 +10,7 @@ spec:
           image: flyway/flyway:9
           command: ["flyway"]
           args:
-            - -url=jdbc:mysql://mysql-0.mysql:3306/mydb?allowPublicKeyRetrieval=true&useSSL=false
+            - -url=jdbc:mysql://mysql-0.mysql:3306/ratings?allowPublicKeyRetrieval=true&useSSL=false
             - -user=$(MYSQL_USER)
             - -password=$(MYSQL_PASSWORD)
             - repair
