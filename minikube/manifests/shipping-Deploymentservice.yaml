@@ -57,9 +57,9 @@ kind: Service
 metadata:
   name: shipping
 spec:
-  type: ClusterIP
   selector:
     app: ubuntu-shipping
   ports:
     - port: 80
       targetPort: 8080
+  type: ClusterIP     

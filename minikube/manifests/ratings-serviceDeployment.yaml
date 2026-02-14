@@ -54,10 +54,10 @@ kind: Service
 metadata:
   name: ratings
 spec:
-  type: NodePort
   selector:
     app: ubuntu-ratings
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30084
+  type: ClusterIP     
+      

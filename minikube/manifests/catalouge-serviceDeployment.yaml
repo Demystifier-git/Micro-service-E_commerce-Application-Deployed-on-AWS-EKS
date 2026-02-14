@@ -44,10 +44,9 @@ kind: Service
 metadata:
   name: catalogue
 spec:
-  type: NodePort
   selector:
     app: ubuntu-catalogue
   ports:
     - port: 80
       targetPort: 8080
-      nodePort: 30083
+  type: ClusterIP     
