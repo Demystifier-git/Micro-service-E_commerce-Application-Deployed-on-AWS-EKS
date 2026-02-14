@@ -4,9 +4,7 @@ metadata:
   name: flyway-migrations
 data:
   V1__init.sql: |
-    -- Create database
-    CREATE DATABASE IF NOT EXISTS ratings CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
+    
     -- Use the database
     USE ratings;
 
