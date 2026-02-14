@@ -4,8 +4,7 @@ metadata:
   name: app-ingress
 spec:
   rules:
-  - host: app.local
-    http:
+  - http:
       paths:
       - path: /
         pathType: Prefix
@@ -70,3 +69,4 @@ spec:
             name: shipping
             port:
               number: 80
+
