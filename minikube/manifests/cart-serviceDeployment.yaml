@@ -25,22 +25,7 @@ spec:
                   name: redis-secret
                   key: redis-password  
           
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - nc -z redis 6379
-            initialDelaySeconds: 10
-            periodSeconds: 5
           
-          livenessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 3          
-                  
                   
               
 ---
