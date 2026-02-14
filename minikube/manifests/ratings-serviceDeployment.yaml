@@ -39,18 +39,7 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-password
-          readinessProbe:
-            tcpSocket:
-              port: 3306   # checks if MySQL connection is available
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 3
-          livenessProbe:
-            tcpSocket:
-              port: 3306
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 3
+          
           resources:
             requests:
               cpu: "250m"
