@@ -2,22 +2,24 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: web-ingress
+  namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    kubernetes.io/ingress.class: "nginx"
 spec:
-  ingressClassName: nginx
   rules:
-  - http:
+  - host: "*"
+    http:
       paths:
+      # Web frontend
       - path: /(.*)
-        pathType: ImplementationSpecific
+        pathType: Prefix
         backend:
           service:
             name: web
             port:
               number: 80
 
+      # User service
       - path: /api/user(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -26,6 +28,7 @@ spec:
             port:
               number: 80
 
+      # Cart service
       - path: /api/cart(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -34,6 +37,7 @@ spec:
             port:
               number: 80
 
+      # Catalogue service
       - path: /api/catalogue(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -42,6 +46,7 @@ spec:
             port:
               number: 80
 
+      # Ratings service
       - path: /api/ratings(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -50,6 +55,7 @@ spec:
             port:
               number: 80
 
+      # Payment service
       - path: /api/payment(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -58,6 +64,7 @@ spec:
             port:
               number: 80
 
+      # Shipping service
       - path: /api/shipping(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
@@ -65,5 +72,6 @@ spec:
             name: shipping
             port:
               number: 80
+
 
 
