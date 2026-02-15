@@ -2,8 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: web-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /  # rewrite all /api/... to root of backend
 spec:
   ingressClassName: nginx
   rules:
@@ -15,54 +13,4 @@ spec:
           service:
             name: web
             port:
-              number: 80
-      - path: /api/user
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: user
-            port:
-              number: 80
-      - path: /api/cart
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: cart
-            port:
-              number: 80
-      - path: /api/catalogue
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: catalogue
-            port:
-              number: 80
-      - path: /api/ratings
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: ratings
-            port:
-              number: 80
-      - path: /api/payment
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: payment
-            port:
-              number: 80
-      - path: /api/dispatch
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: dispatch
-            port:
-              number: 80
-      - path: /api/shipping
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: shipping
-            port:
-              number: 80
-
+              number: 8080
