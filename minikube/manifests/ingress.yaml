@@ -10,7 +10,7 @@ spec:
   - http:
       paths:
       # Web frontend
-      - path: /(.*)
+      - path: /
         pathType: Prefix
         backend:
           service:
@@ -19,8 +19,8 @@ spec:
               number: 80
 
       # User service
-      - path: /api/user(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/user
+        pathType: Prefix
         backend:
           service:
             name: user
@@ -28,8 +28,8 @@ spec:
               number: 80
 
       # Cart service
-      - path: /api/cart(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/cart
+        pathType: Prefix
         backend:
           service:
             name: cart
@@ -37,8 +37,8 @@ spec:
               number: 80
 
       # Catalogue service
-      - path: /api/catalogue(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/catalogue
+        pathType: Prefix
         backend:
           service:
             name: catalogue
@@ -46,8 +46,8 @@ spec:
               number: 80
 
       # Ratings service
-      - path: /api/ratings(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/ratings
+        pathType: Prefix
         backend:
           service:
             name: ratings
@@ -55,8 +55,8 @@ spec:
               number: 80
 
       # Payment service
-      - path: /api/payment(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/payment
+        pathType: Prefix
         backend:
           service:
             name: payment
@@ -64,14 +64,13 @@ spec:
               number: 80
 
       # Shipping service
-      - path: /api/shipping(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /api/shipping
+        pathType: Prefix
         backend:
           service:
             name: shipping
             port:
               number: 80
-
 
 
 
