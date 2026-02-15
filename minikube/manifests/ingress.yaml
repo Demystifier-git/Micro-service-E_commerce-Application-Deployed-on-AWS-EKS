@@ -8,35 +8,6 @@ spec:
   rules:
   - http:
       paths:
-
-      # Web / Dispatch
-      - path: /api/dispatch
-        pathType: Prefix
-        backend:
-          service:
-            name: dispatch
-            port:
-              number: 80
-
-      # Catalogue
-      - path: /api/catalogue
-        pathType: Prefix
-        backend:
-          service:
-            name: catalogue
-            port:
-              number: 80
-
-      # Ratings
-      - path: /api/ratings
-        pathType: Prefix
-        backend:
-          service:
-            name: ratings
-            port:
-              number: 80
-
-      # User
       - path: /api/user
         pathType: Prefix
         backend:
@@ -45,30 +16,35 @@ spec:
             port:
               number: 80
 
-      # Cart
-      - path: /api/cart
+      - path: /api/ratings
         pathType: Prefix
         backend:
           service:
-            name: cart
+            name: ratings
             port:
               number: 80
 
-      # Payment
-      - path: /api/payment
+      - path: /api/catalogue
         pathType: Prefix
         backend:
           service:
-            name: payment
+            name: catalogue
             port:
               number: 80
 
-      # Shipping
       - path: /api/shipping
         pathType: Prefix
         backend:
           service:
             name: shipping
+            port:
+              number: 80
+
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
             port:
               number: 80
 
