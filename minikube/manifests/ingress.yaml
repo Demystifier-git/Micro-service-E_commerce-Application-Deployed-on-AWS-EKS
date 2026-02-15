@@ -5,13 +5,15 @@ metadata:
   namespace: default
   annotations:
     kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
   - http:
       paths:
       # Web frontend
-      - path: /
-        pathType: Prefix
+      - path: /(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: web
@@ -19,8 +21,8 @@ spec:
               number: 80
 
       # User service
-      - path: /api/user
-        pathType: Prefix
+      - path: /api/user(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: user
@@ -28,8 +30,8 @@ spec:
               number: 80
 
       # Cart service
-      - path: /api/cart
-        pathType: Prefix
+      - path: /api/cart(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: cart
@@ -37,8 +39,8 @@ spec:
               number: 80
 
       # Catalogue service
-      - path: /api/catalogue
-        pathType: Prefix
+      - path: /api/catalogue(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: catalogue
@@ -46,8 +48,8 @@ spec:
               number: 80
 
       # Ratings service
-      - path: /api/ratings
-        pathType: Prefix
+      - path: /api/ratings(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: ratings
@@ -55,8 +57,8 @@ spec:
               number: 80
 
       # Payment service
-      - path: /api/payment
-        pathType: Prefix
+      - path: /api/payment(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: payment
@@ -64,8 +66,8 @@ spec:
               number: 80
 
       # Shipping service
-      - path: /api/shipping
-        pathType: Prefix
+      - path: /api/shipping(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: shipping
