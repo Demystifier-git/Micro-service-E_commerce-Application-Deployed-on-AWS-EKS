@@ -2,72 +2,70 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: web-ingress
-  namespace: default
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    kubernetes.io/ingress.class: nginx
 spec:
   rules:
   - http:
       paths:
-      # Web frontend
-      - path: /(.*)
-        pathType: ImplementationSpecific
+
+      # Web / Dispatch
+      - path: /api/dispatch
+        pathType: Prefix
         backend:
           service:
-            name: web
+            name: dispatch
             port:
               number: 80
 
-      # User service
-      - path: /api/user(/|$)(.*)
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: user
-            port:
-              number: 80
-
-      # Cart service
-      - path: /api/cart(/|$)(.*)
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: cart
-            port:
-              number: 80
-
-      # Catalogue service
-      - path: /api/catalogue(/|$)(.*)
-        pathType: ImplementationSpecific
+      # Catalogue
+      - path: /api/catalogue
+        pathType: Prefix
         backend:
           service:
             name: catalogue
             port:
               number: 80
 
-      # Ratings service
-      - path: /api/ratings(/|$)(.*)
-        pathType: ImplementationSpecific
+      # Ratings
+      - path: /api/ratings
+        pathType: Prefix
         backend:
           service:
             name: ratings
             port:
               number: 80
 
-      # Payment service
-      - path: /api/payment(/|$)(.*)
-        pathType: ImplementationSpecific
+      # User
+      - path: /api/user
+        pathType: Prefix
+        backend:
+          service:
+            name: user
+            port:
+              number: 80
+
+      # Cart
+      - path: /api/cart
+        pathType: Prefix
+        backend:
+          service:
+            name: cart
+            port:
+              number: 80
+
+      # Payment
+      - path: /api/payment
+        pathType: Prefix
         backend:
           service:
             name: payment
             port:
               number: 80
 
-      # Shipping service
-      - path: /api/shipping(/|$)(.*)
-        pathType: ImplementationSpecific
+      # Shipping
+      - path: /api/shipping
+        pathType: Prefix
         backend:
           service:
             name: shipping
