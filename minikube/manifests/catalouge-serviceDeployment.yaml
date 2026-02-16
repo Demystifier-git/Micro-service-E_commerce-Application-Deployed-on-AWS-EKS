@@ -19,6 +19,8 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: MONGO_DATABASE
+              value: catalogue
             - name: MONGO_HOST
               value: mongodb
             - name: MONGO_PORT
