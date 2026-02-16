@@ -47,7 +47,7 @@ spec:
   selector:
     app: ubuntu-payment
   ports:
-    - port: 80
+    - port: 8080
       targetPort: 8080
   type: ClusterIP     
       

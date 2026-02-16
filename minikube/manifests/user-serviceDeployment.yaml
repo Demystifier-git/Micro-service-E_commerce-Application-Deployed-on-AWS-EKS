@@ -54,7 +54,7 @@ spec:
   selector:
     app: ubuntu-user
   ports:
-    - port: 80
+    - port: 8080
       targetPort: 8080
   type: ClusterIP     
       
