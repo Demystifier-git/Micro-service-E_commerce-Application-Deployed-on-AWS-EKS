@@ -35,6 +35,8 @@ spec:
                 secretKeyRef:
                   name: catalogue-mongo-secret
                   key:  password
+            - name: MONGO_AUTH_SOURCE
+              value: catalogue      
           
           resources:
             requests:

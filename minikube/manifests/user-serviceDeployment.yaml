@@ -44,6 +44,8 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
+            - name: MONGO_AUTH_SOURCE
+              value: users      
           resources:
             requests:
               cpu: "250m"
