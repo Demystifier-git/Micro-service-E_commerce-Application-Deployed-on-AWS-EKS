@@ -39,6 +39,8 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-password
+            - name: MYSQL_HOST
+              value: "mysql"      
           
           resources:
             requests:

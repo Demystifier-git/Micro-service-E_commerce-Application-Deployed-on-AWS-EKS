@@ -40,6 +40,8 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-password
+            - name: MYSQL_HOST
+              value: "mysql"     
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql

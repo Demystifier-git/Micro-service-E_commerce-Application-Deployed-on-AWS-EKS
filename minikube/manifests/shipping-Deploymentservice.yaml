@@ -40,7 +40,10 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
-                  key: mysql-password  
+                  key: mysql-password 
+            - name: MYSQL_HOST
+              value: "mysql"      
+                   
           
           
           resources:
