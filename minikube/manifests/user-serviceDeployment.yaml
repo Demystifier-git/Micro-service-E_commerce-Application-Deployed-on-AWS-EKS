@@ -19,22 +19,20 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: MONGO_DATABASE
+            - name: MONGO_DB
               value: users
             - name: MONGO_HOST
               value: mongodb
-            - name: MONGO_PORT
-              value: "27017"
-            - name: MONGO_USERNAME
+            - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: users-mongo-secret
-                  key: username
+                  name: mongo-secret
+                  key: MONGO_USER
             - name: MONGO_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: users-mongo-secret
-                  key: password
+                  name: mongo-secret
+                  key: MONGO_PASS
             - name: REDIS_HOST
               value: redis
             - name: REDIS_PORT
@@ -44,8 +42,7 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
-            - name: MONGO_AUTH_SOURCE
-              value: "users"     
+                
           resources:
             requests:
               cpu: "250m"

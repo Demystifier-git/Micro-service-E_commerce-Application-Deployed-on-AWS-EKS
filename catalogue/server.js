@@ -159,6 +159,7 @@ function mongoConnect() {
         const mongoPass = process.env.MONGO_PASS;
         const mongoHost = process.env.MONGO_HOST;
         const mongoDB   = process.env.MONGO_DB;
+        const mongoPort = process.env.MONGO_PORT || 27017;
 
         if (!mongoUser || !mongoPass || !mongoHost || !mongoDB) {
             return reject(new Error('MongoDB environment variables not set'));

@@ -271,35 +271,53 @@ redisClient.on('ready', (r) => {
 // set up Mongo
 function mongoConnect() {
     return new Promise((resolve, reject) => {
-        var mongoURL = process.env.MONGO_URL || 'mongodb://mongodb:27017/users';
-        mongoClient.connect(mongoURL, (error, client) => {
-            if(error) {
+        // use only environment variables for MongoDB connection
+        const mongoUser = process.env.MONGO_USER;
+        const mongoPass = process.env.MONGO_PASS;
+        const mongoHost = process.env.MONGO_HOST;
+        const mongoDB   = process.env.MONGO_DB;
+        const mongoPort = process.env.MONGO_PORT || 27017;
+
+        if (!mongoUser || !mongoPass || !mongoHost || !mongoDB) {
+            return reject(new Error('MongoDB environment variables not set'));
+        }
+
+        // Base URL
+        let mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}`;
+
+        
+
+        mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
+            if (error) {
                 reject(error);
             } else {
-                db = client.db('users');
-                usersCollection = db.collection('users');
-                ordersCollection = db.collection('orders');
+                db = client.db(mongoDB);
+                collection = db.collection('products');
                 resolve('connected');
             }
         });
     });
 }
 
+// mongodb connection retry loop
 function mongoLoop() {
-    mongoConnect().then((r) => {
-        mongoConnected = true;
-        logger.info('MongoDB connected');
-    }).catch((e) => {
-        logger.error('ERROR', e);
-        setTimeout(mongoLoop, 2000);
-    });
+    const mongoUser = process.env.MONGO_USER;
+    const mongoHost = process.env.MONGO_HOST;
+
+    if (!mongoUser || !mongoHost) {
+        logger.error('MongoDB environment variables not set, cannot connect');
+        return;
+    }
+
+    logger.info(`Attempting MongoDB connection to ${mongoUser}@${mongoHost}`);
+
+    mongoConnect()
+        .then(() => {
+            mongoConnected = true;
+            logger.info('MongoDB connected');
+        })
+        .catch((e) => {
+            logger.error('MongoDB connection failed, retrying in 2s', e);
+            setTimeout(mongoLoop, 2000);
+        });
 }
-
-mongoLoop();
-
-// fire it up!
-const port = process.env.USER_SERVER_PORT || '8080';
-app.listen(port, () => {
-    logger.info('Started on port', port);
-});
-
