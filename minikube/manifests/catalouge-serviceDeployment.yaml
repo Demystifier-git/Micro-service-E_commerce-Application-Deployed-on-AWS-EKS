@@ -36,7 +36,7 @@ spec:
                   name: catalogue-mongo-secret
                   key:  password
             - name: MONGO_AUTH_SOURCE
-              value: "admin"      
+              value: "catalogue"      
           
           resources:
             requests:
