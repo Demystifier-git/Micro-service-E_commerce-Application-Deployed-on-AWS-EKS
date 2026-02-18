@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-cart
-          image: ubuntu-cart:v1
+          image: ubuntu-cart:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

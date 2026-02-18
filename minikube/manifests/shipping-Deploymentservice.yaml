@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-shipping
-          image: ubuntu-shipping:v1
+          image: ubuntu-shipping:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

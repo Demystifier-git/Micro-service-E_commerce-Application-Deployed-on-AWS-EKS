@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-user
-          image: ubuntu-user:v1
+          image: ubuntu-user:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
