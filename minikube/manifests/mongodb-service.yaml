@@ -24,12 +24,12 @@ spec:
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: mongodb-secret
+                  name: mongo-secret
                   key: MONGO_USER
             - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  name: mongodb-secret
+                  name: mongo-secret
                   key: MONGO_PASS
             - name: MONGO_HOST
               value: "mongodb"         
