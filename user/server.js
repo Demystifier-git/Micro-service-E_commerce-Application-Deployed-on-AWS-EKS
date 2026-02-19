@@ -252,19 +252,22 @@ function mongoConnect() {
             return reject(new Error('MongoDB environment variables not set'));
         }
 
-        let mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}`;
+        // Add authSource to the connection string
+        let mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}?authSource=${mongoAuth}`;
 
         mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
             if (error) {
                 reject(error);
             } else {
                 db = client.db(mongoDB);
-                collection = db.collection('products');
+                usersCollection = db.collection('users');      // assign correct collection
+                ordersCollection = db.collection('orders');    // assign correct collection
                 resolve('connected');
             }
         });
     });
 }
+
 
 // mongodb connection retry loop
 function mongoLoop() {
