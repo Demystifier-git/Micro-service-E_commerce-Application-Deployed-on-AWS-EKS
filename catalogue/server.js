@@ -182,8 +182,8 @@ function mongoLoop() {
 }
 
 const port = process.env.CATALOGUE_PORT || 8080;
-
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     logger.info(`Catalogue service listening on port ${port}`);
     mongoLoop();
 });
+
