@@ -247,6 +247,7 @@ function mongoConnect() {
         const mongoHost = process.env.MONGO_HOST;
         const mongoDB   = process.env.MONGO_DB;
         const mongoPort = process.env.MONGO_PORT || 27017;
+        const mongoAuth = process.env.MONGO_AUTH_DB || 'admin'; // use auth DB
 
         if (!mongoUser || !mongoPass || !mongoHost || !mongoDB) {
             return reject(new Error('MongoDB environment variables not set'));
