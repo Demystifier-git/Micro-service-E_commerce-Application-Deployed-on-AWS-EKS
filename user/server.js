@@ -19,7 +19,6 @@ const logger = pino({
 });
 const expLogger = expPino({
     logger: logger
-
 });
 
 const app = express();
@@ -32,19 +31,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use((req, res, next) => {
-    let dcs = [
-        "asia-northeast2",
-        "asia-south1",
-        "europe-west3",
-        "us-east1",
-        "us-west1"
-    ];
-    let span = instana.currentSpan();
-    span.annotate('custom.sdk.tags.datacenter', dcs[Math.floor(Math.random() * dcs.length)]);
-
-    next();
-});
+// removed Instana tracking
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -59,7 +46,6 @@ app.get('/health', (req, res) => {
 
 // use REDIS INCR to track anonymous users
 app.get('/uniqueid', (req, res) => {
-    // get number from Redis
     redisClient.incr('anonymous-counter', (err, r) => {
         if(!err) {
             res.json({
@@ -142,13 +128,11 @@ app.post('/register', (req, res) => {
         req.log.warn('insufficient data');
         res.status(400).send('insufficient data');
     } else if(mongoConnected) {
-        // check if name already exists
         usersCollection.findOne({name: req.body.name}).then((user) => {
             if(user) {
                 req.log.warn('user already exists');
                 res.status(400).send('name already exists');
             } else {
-                // create new user
                 usersCollection.insertOne({
                     name: req.body.name,
                     password: req.body.password,
@@ -173,14 +157,11 @@ app.post('/register', (req, res) => {
 
 app.post('/order/:id', (req, res) => {
     req.log.info('order', req.body);
-    // only for registered users
     if(mongoConnected) {
         usersCollection.findOne({
             name: req.params.id
         }).then((user) => {
             if(user) {
-                // found user record
-                // get orders
                 ordersCollection.findOne({
                     name: req.params.id
                 }).then((history) => {
@@ -197,7 +178,6 @@ app.post('/order/:id', (req, res) => {
                             res.status(500).send(e);
                         });
                     } else {
-                        // no history
                         ordersCollection.insertOne({
                             name: req.params.id,
                             history: [ req.body ]
@@ -262,7 +242,6 @@ redisClient.on('ready', (r) => {
 // set up Mongo
 function mongoConnect() {
     return new Promise((resolve, reject) => {
-        // use only environment variables for MongoDB connection
         const mongoUser = process.env.MONGO_USER;
         const mongoPass = process.env.MONGO_PASS;
         const mongoHost = process.env.MONGO_HOST;
@@ -273,10 +252,7 @@ function mongoConnect() {
             return reject(new Error('MongoDB environment variables not set'));
         }
 
-        // Base URL
         let mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}`;
-
-        
 
         mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
             if (error) {
@@ -317,3 +293,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     logger.info(`User service listening on port ${PORT}`);
 });
+
