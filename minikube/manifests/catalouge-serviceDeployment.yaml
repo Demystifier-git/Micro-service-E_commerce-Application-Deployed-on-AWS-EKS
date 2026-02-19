@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-catalogue
-          image: ubuntu-catalogue:v2
+          image: ubuntu-catalogue:v3
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -36,6 +36,8 @@ spec:
                 secretKeyRef:
                   name: mongo-secret
                   key: MONGO_PASS
+            - name: MONGO_AUTH_DB
+              value: "admin"      
           
           resources:
             requests:

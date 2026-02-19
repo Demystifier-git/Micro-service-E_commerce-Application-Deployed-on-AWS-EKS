@@ -33,6 +33,8 @@ spec:
                 secretKeyRef:
                   name: mongo-secret
                   key: MONGO_PASS
+            - name: MONGO_AUTH_DB
+              value: "admin"      
             - name: REDIS_HOST
               value: redis
             - name: REDIS_PORT

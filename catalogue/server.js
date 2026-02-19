@@ -145,7 +145,8 @@ function mongoConnect() {
             return reject(new Error('MongoDB environment variables not set'));
         }
 
-        const mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}`;
+        const mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:27017/${mongoDB}?authSource=${process.env.MONGO_AUTH_DB || 'admin'}`;
+
 
         mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
             if (error) {
