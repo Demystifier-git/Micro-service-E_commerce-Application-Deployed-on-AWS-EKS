@@ -293,6 +293,9 @@ function mongoLoop() {
         });
 }
 
+// start Mongo retry loop
+mongoLoop();
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     logger.info(`User service listening on port ${PORT}`);
