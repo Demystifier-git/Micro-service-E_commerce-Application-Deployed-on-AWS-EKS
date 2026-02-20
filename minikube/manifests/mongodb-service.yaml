@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: ubuntu-mongodb:v1
+          image: mongo:5.0
           imagePullPolicy: Never
           ports:
             - containerPort: 27017
