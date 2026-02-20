@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ubuntu-catalogue
-          image: ubuntu-catalogue:v4
+          image: ubuntu-catalogue:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
