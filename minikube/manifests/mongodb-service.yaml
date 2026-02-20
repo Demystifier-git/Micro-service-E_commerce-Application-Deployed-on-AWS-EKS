@@ -20,6 +20,10 @@ spec:
           ports:
             - containerPort: 27017
               name: mongodb
+          command:
+            - mongod
+            - "--bind_ip_all"
+            - "--auth"              
           env:
             - name: MONGO_USER
               valueFrom:
