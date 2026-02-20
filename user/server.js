@@ -202,18 +202,17 @@ app.get('/history/:id', (req, res) => {
 });
 
 // --------------------
-// Redis connection
+// Redis connection (v3)
 // --------------------
 const redisClient = redis.createClient({
-    socket: {
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT
-    },
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
     password: process.env.REDIS_PASSWORD
 });
 
 redisClient.on('error', e => logger.error('Redis ERROR', e));
-redisClient.connect();
+redisClient.on('ready', () => logger.info('Redis connected'));
+// Note: .connect() removed for Redis v3
 
 // --------------------
 // MongoDB connection
