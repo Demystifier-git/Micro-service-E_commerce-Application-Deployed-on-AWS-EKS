@@ -1,303 +1,123 @@
-const mongoClient = require('mongodb').MongoClient;
-const mongoObjectID = require('mongodb').ObjectID;
+const { MongoClient, ObjectId } = require('mongodb');
 const redis = require('redis');
-const bodyParser = require('body-parser');
 const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 
-// MongoDB
-var db;
-var usersCollection;
-var ordersCollection;
-var mongoConnected = false;
-
-const logger = pino({
-    level: 'info',
-    prettyPrint: false,
-    useLevelLabels: true
-});
-const expLogger = expPino({
-    logger: logger
-});
+const logger = pino({ level: 'info' });
+const expLogger = expPino({ logger });
 
 const app = express();
-
 app.use(expLogger);
 
+// CORS headers
 app.use((req, res, next) => {
     res.set('Timing-Allow-Origin', '*');
     res.set('Access-Control-Allow-Origin', '*');
     next();
 });
 
-// removed Instana tracking
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// --- Globals ---
+let db;
+let usersCollection;
+let ordersCollection;
+let mongoConnected = false;
+let redisClient;
 
-app.get('/health', (req, res) => {
-    var stat = {
-        app: 'OK',
-        mongo: mongoConnected
-    };
-    res.json(stat);
-});
-
-// use REDIS INCR to track anonymous users
-app.get('/uniqueid', (req, res) => {
-    redisClient.incr('anonymous-counter', (err, r) => {
-        if(!err) {
-            res.json({
-                uuid: 'anonymous-' + r
-            });
-        } else {
-            req.log.error('ERROR', err);
-            res.status(500).send(err);
-        }
+// --- Redis setup ---
+async function initRedis() {
+    redisClient = redis.createClient({
+        socket: {
+            host: process.env.REDIS_HOST || 'redis',
+            port: process.env.REDIS_PORT || 6379
+        },
+        password: process.env.REDIS_PASSWORD
     });
-});
 
-// check user exists
-app.get('/check/:id', (req, res) => {
-    if(mongoConnected) {
-        usersCollection.findOne({name: req.params.id}).then((user) => {
-            if(user) {
-                res.send('OK');
-            } else {
-                res.status(404).send('user not found');
-            }
-        }).catch((e) => {
-            req.log.error(e);
-            res.send(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
+    redisClient.on('error', (e) => logger.error('Redis ERROR', e));
+    redisClient.on('connect', () => logger.info('Redis connected'));
 
-// return all users for debugging only
-app.get('/users', (req, res) => {
-    if(mongoConnected) {
-        usersCollection.find().toArray().then((users) => {
-            res.json(users);
-        }).catch((e) => {
-            req.log.error('ERROR', e);
-            res.status(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
-
-app.post('/login', (req, res) => {
-    req.log.info('login', req.body);
-    if(req.body.name === undefined || req.body.password === undefined) {
-        req.log.warn('credentails not complete');
-        res.status(400).send('name or passowrd not supplied');
-    } else if(mongoConnected) {
-        usersCollection.findOne({
-            name: req.body.name,
-        }).then((user) => {
-            req.log.info('user', user);
-            if(user) {
-                if(user.password == req.body.password) {
-                    res.json(user);
-                } else {
-                    res.status(404).send('incorrect password');
-                }
-            } else {
-                res.status(404).send('name not found');
-            }
-        }).catch((e) => {
-            req.log.error('ERROR', e);
-            res.status(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
-
-// TODO - validate email address format
-app.post('/register', (req, res) => {
-    req.log.info('register', req.body);
-    if(req.body.name === undefined || req.body.password === undefined || req.body.email === undefined) {
-        req.log.warn('insufficient data');
-        res.status(400).send('insufficient data');
-    } else if(mongoConnected) {
-        usersCollection.findOne({name: req.body.name}).then((user) => {
-            if(user) {
-                req.log.warn('user already exists');
-                res.status(400).send('name already exists');
-            } else {
-                usersCollection.insertOne({
-                    name: req.body.name,
-                    password: req.body.password,
-                    email: req.body.email
-                }).then((r) => {
-                    req.log.info('inserted', r.result);
-                    res.send('OK');
-                }).catch((e) => {
-                    req.log.error('ERROR', e);
-                    res.status(500).send(e);
-                });
-            }
-        }).catch((e) => {
-            req.log.error('ERROR', e);
-            res.status(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
-
-app.post('/order/:id', (req, res) => {
-    req.log.info('order', req.body);
-    if(mongoConnected) {
-        usersCollection.findOne({
-            name: req.params.id
-        }).then((user) => {
-            if(user) {
-                ordersCollection.findOne({
-                    name: req.params.id
-                }).then((history) => {
-                    if(history) {
-                        var list = history.history;
-                        list.push(req.body);
-                        ordersCollection.updateOne(
-                            { name: req.params.id },
-                            { $set: { history: list }}
-                        ).then((r) => {
-                            res.send('OK');
-                        }).catch((e) => {
-                            req.log.error(e);
-                            res.status(500).send(e);
-                        });
-                    } else {
-                        ordersCollection.insertOne({
-                            name: req.params.id,
-                            history: [ req.body ]
-                        }).then((r) => {
-                            res.send('OK');
-                        }).catch((e) => {
-                            req.log.error(e);
-                            res.status(500).send(e);
-                        });
-                    }
-                }).catch((e) => {
-                    req.log.error(e);
-                    res.status(500).send(e);
-                });
-            } else {
-                res.status(404).send('name not found');
-            }
-        }).catch((e) => {
-            req.log.error(e);
-            res.status(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
-
-app.get('/history/:id', (req, res) => {
-    if(mongoConnected) {
-        ordersCollection.findOne({
-            name: req.params.id
-        }).then((history) => {
-            if(history) {
-                res.json(history);
-            } else {
-                res.status(404).send('history not found');
-            }
-        }).catch((e) => {
-            req.log.error(e);
-            res.status(500).send(e);
-        });
-    } else {
-        req.log.error('database not available');
-        res.status(500).send('database not available');
-    }
-});
-
-// connect to Redis
-var redisClient = redis.createClient({
-    host: process.env.REDIS_HOST || 'redis',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD
-});
-
-redisClient.on('error', (e) => {
-    logger.error('Redis ERROR', e);
-});
-redisClient.on('ready', (r) => {
-    logger.info('Redis READY', r);
-});
-
-// set up Mongo
-function mongoConnect() {
-    return new Promise((resolve, reject) => {
-        const mongoUser = process.env.MONGO_USER;
-        const mongoPass = process.env.MONGO_PASS;
-        const mongoHost = process.env.MONGO_HOST;
-        const mongoDB   = process.env.MONGO_DB;
-        const mongoPort = process.env.MONGO_PORT || 27017;
-        const mongoAuth = process.env.MONGO_AUTH_DB || 'admin'; // use auth DB
-
-        if (!mongoUser || !mongoPass || !mongoHost || !mongoDB) {
-            return reject(new Error('MongoDB environment variables not set'));
-        }
-
-        // Add authSource to the connection string
-        let mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}?authSource=${mongoAuth}`;
-
-        mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
-            if (error) {
-                reject(error);
-            } else {
-                db = client.db(mongoDB);
-                usersCollection = db.collection('users');      // assign correct collection
-                ordersCollection = db.collection('orders');    // assign correct collection
-                resolve('connected');
-            }
-        });
-    });
+    await redisClient.connect();
 }
 
-
-// mongodb connection retry loop
-function mongoLoop() {
+// --- MongoDB setup ---
+async function initMongo() {
     const mongoUser = process.env.MONGO_USER;
+    const mongoPass = process.env.MONGO_PASS;
     const mongoHost = process.env.MONGO_HOST;
+    const mongoPort = process.env.MONGO_PORT || 27017;
+    const mongoDB   = process.env.MONGO_DB;
+    const mongoAuth = process.env.MONGO_AUTH_DB || 'admin';
 
-    if (!mongoUser || !mongoHost) {
-        logger.error('MongoDB environment variables not set, cannot connect');
-        return;
+    if (!mongoUser || !mongoPass || !mongoHost || !mongoDB) {
+        throw new Error('MongoDB environment variables not set');
     }
 
-    logger.info(`Attempting MongoDB connection to ${mongoUser}@${mongoHost}`);
+    const mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:${mongoPort}/${mongoDB}?authSource=${mongoAuth}`;
 
-    mongoConnect()
-        .then(() => {
+    const client = new MongoClient(mongoURL, { useUnifiedTopology: true });
+
+    while (!mongoConnected) {
+        try {
+            await client.connect();
+            db = client.db(mongoDB);
+            usersCollection = db.collection('users');
+            ordersCollection = db.collection('orders');
             mongoConnected = true;
             logger.info('MongoDB connected');
-        })
-        .catch((e) => {
-            logger.error('MongoDB connection failed, retrying in 2s', e);
-            setTimeout(mongoLoop, 2000);
-        });
+        } catch (err) {
+            logger.error('MongoDB connection failed, retrying in 2s', err.message);
+            await new Promise(r => setTimeout(r, 2000));
+        }
+    }
 }
 
-// start Mongo retry loop
-mongoLoop();
-
-const port = process.env.USER_SERVER_PORT || '8080';
-app.listen(PORT, () => {
-    logger.info(`User service listening on port ${PORT}`);
+// --- Health check ---
+app.get('/health', (req, res) => {
+    res.json({ app: 'OK', mongo: mongoConnected });
 });
+
+// --- Example /uniqueid endpoint using Redis ---
+app.get('/uniqueid', async (req, res) => {
+    try {
+        const id = await redisClient.incr('anonymous-counter');
+        res.json({ uuid: 'anonymous-' + id });
+    } catch (e) {
+        req.log.error('Redis error', e);
+        res.status(500).send('Redis error');
+    }
+});
+
+// --- Your other routes can go here ---
+app.get('/users', async (req, res) => {
+    if (!mongoConnected) return res.status(500).send('Database not available');
+    try {
+        const users = await usersCollection.find().toArray();
+        res.json(users);
+    } catch (e) {
+        req.log.error('Mongo error', e);
+        res.status(500).send(e.message);
+    }
+});
+
+// --- Start server after Mongo & Redis ---
+async function startServer() {
+    try {
+        await initRedis();
+        await initMongo();
+        const port = process.env.USER_SERVER_PORT || 8080;
+        app.listen(port, () => {
+            logger.info(`User service listening on port ${port}`);
+        });
+    } catch (e) {
+        logger.error('Failed to start server', e);
+        process.exit(1);
+    }
+}
+
+startServer();
 
