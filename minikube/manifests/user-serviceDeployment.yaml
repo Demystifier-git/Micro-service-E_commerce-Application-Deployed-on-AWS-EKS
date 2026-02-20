@@ -20,9 +20,9 @@ spec:
             - containerPort: 8080
           env:
             - name: MONGO_DB
-              value: users
+              value: "users"
             - name: MONGO_HOST
-              value: mongodb
+              value: "mongodb-0.mongodb"
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
