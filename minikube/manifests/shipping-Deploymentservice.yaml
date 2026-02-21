@@ -21,19 +21,24 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: MYSQL_HOST
+              value: "mysql"
+
+            - name: MYSQL_DATABASE
+              value: "cities"
+
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shipping-secret
+                  key: username
+
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: shipping-secret
                   key: password
-            - name: MYSQL_DATABASE
-              value: "cities"
-            - name: MYSQL_USER
-              valueFrom:
-                  name: shipping-secret
-                  key: username
-            - name: MYSQL_HOST
-              value: "mysql"                    
+
           resources:
             requests:
               cpu: "250m"
