@@ -23,16 +23,18 @@ spec:
             - containerPort: 15672
               name: management
           env:
-            - name: RABBITMQ_DEFAULT_USER
+            - name: AMQP_USER
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: rabbitmq-username
-            - name: RABBITMQ_DEFAULT_PASS
+            - name: AMQP_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: rabbitmq-password
+            - name: AMQP_HOST
+              value: "rabbitmq"      
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq

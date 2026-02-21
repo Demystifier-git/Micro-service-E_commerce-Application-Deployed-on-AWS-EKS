@@ -19,16 +19,18 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: RABBITMQ_DEFAULT_USER
+            - name: AMQP_USER
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: rabbitmq-username
-            - name: RABBITMQ_DEFAULT_PASS
+            - name: AMQP_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: rabbitmq-password
+            - name: AMQP_HOST
+              value: "rabbitmq"      
           
           resources:
             requests:
