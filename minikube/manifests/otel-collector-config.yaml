@@ -6,51 +6,32 @@ metadata:
 data:
   otel-collector-config.yaml: |
     receivers:
-      # Receives traces and metrics from apps
       otlp:
         protocols:
           grpc:
           http:
 
-      # Host-level metrics (CPU, memory, disk, network)
+      k8s_cluster:
+        collection_interval: 10s
+
       hostmetrics:
         collection_interval: 10s
         scrapers:
           cpu:
           memory:
+          disk:
           filesystem:
           network:
-          load:
-          disk:
-
-      # Cluster-level metrics (pods, deployments, services)
-      k8s_cluster:
-        collection_interval: 15s
-        node_condition_types: ["Ready", "MemoryPressure", "DiskPressure", "PIDPressure", "NetworkUnavailable"]
-        metadata_exporters: []
-
-      # Scrape metrics from Prometheus endpoints
-      prometheus:
-        config:
-          scrape_configs:
-            - job_name: 'kubernetes-nodes'
-              kubernetes_sd_configs:
-                - role: node
-            - job_name: 'kubernetes-pods'
-              kubernetes_sd_configs:
-                - role: pod
 
     processors:
       batch:
 
     exporters:
-      # Export traces to Jaeger
       otlp:
         endpoint: jaeger:4317
         tls:
           insecure: true
 
-      # Export metrics to Prometheus
       prometheus:
         endpoint: "0.0.0.0:9464"
 
@@ -62,6 +43,6 @@ data:
           exporters: [otlp]
 
         metrics:
-          receivers: [otlp, hostmetrics, k8s_cluster, prometheus]
+          receivers: [otlp, k8s_cluster, hostmetrics]
           processors: [batch]
           exporters: [prometheus]
