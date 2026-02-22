@@ -11,6 +11,10 @@ spec:
     metadata:
       labels:
         app: ubuntu-cart
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
     spec:
       containers:
         - name: ubuntu-cart
@@ -24,6 +28,12 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"      
 ---
 apiVersion: v1
 kind: Service

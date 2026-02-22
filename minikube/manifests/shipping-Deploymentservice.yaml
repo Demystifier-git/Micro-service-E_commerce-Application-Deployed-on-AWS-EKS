@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         app: ubuntu-shipping
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
     spec:
       containers:
         - name: ubuntu-shipping
@@ -38,6 +42,12 @@ spec:
                 secretKeyRef:
                   name: shipping-secret
                   key: password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"      
 
           resources:
             requests:

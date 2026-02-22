@@ -1,6 +1,4 @@
 import random
-
-import instana
 import os
 import sys
 import time
@@ -9,17 +7,43 @@ import uuid
 import json
 import requests
 import traceback
-from flask import Flask
-from flask import Response
-from flask import request
-from flask import jsonify
+from flask import Flask, Response, request, jsonify
 from rabbitmq import Publisher
 # Prometheus
 import prometheus_client
 from prometheus_client import Counter, Histogram
 
+# OpenTelemetry
+from opentelemetry import trace
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
+
+# --------------------
+# OpenTelemetry / Jaeger instrumentation
+# --------------------
+jaeger_collector = os.getenv("JAEGER_COLLECTOR_ENDPOINT", "http://localhost:14268/api/traces")
+trace.set_tracer_provider(
+    TracerProvider(
+        resource=Resource.create({"service.name": "payment"})
+    )
+)
+tracer = trace.get_tracer(__name__)
+jaeger_exporter = JaegerExporter(
+    collector_endpoint=jaeger_collector,
+)
+span_processor = BatchSpanProcessor(jaeger_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+# instrument Flask and Requests
+FlaskInstrumentor().instrument_app(app)
+RequestsInstrumentor().instrument()
 
 CART = os.getenv('CART_HOST', 'cart')
 USER = os.getenv('USER_HOST', 'user')
@@ -30,7 +54,6 @@ PromMetrics = {}
 PromMetrics['SOLD_COUNTER'] = Counter('sold_count', 'Running count of items sold')
 PromMetrics['AUS'] = Histogram('units_sold', 'Avergae Unit Sale', buckets=(1, 2, 5, 10, 100))
 PromMetrics['AVS'] = Histogram('cart_value', 'Avergae Value Sale', buckets=(100, 200, 500, 1000, 2000, 5000, 10000))
-
 
 @app.errorhandler(Exception)
 def exception_handler(err):
@@ -47,9 +70,7 @@ def metrics():
     res = []
     for m in PromMetrics.values():
         res.append(prometheus_client.generate_latest(m))
-
     return Response(res, mimetype='text/plain')
-
 
 @app.route('/pay/<id>', methods=['POST'])
 def pay(id):
@@ -61,7 +82,7 @@ def pay(id):
 
     # check user exists
     try:
-        req = requests.get('http://{user}:8080/check/{id}'.format(user=USER, id=id))
+        req = requests.get(f'http://{USER}:8080/check/{id}')
     except requests.exceptions.RequestException as err:
         app.logger.error(err)
         return str(err), 500
@@ -69,17 +90,12 @@ def pay(id):
         anonymous_user = False
 
     # check that the cart is valid
-    # this will blow up if the cart is not valid
-    has_shipping = False
-    for item in cart.get('items'):
-        if item.get('sku') == 'SHIP':
-            has_shipping = True
-
-    if cart.get('total', 0) == 0 or has_shipping == False:
-        app.logger.warn('cart not valid')
+    has_shipping = any(item.get('sku') == 'SHIP' for item in cart.get('items'))
+    if cart.get('total', 0) == 0 or not has_shipping:
+        app.logger.warning('cart not valid')
         return 'cart not valid', 400
 
-    # dummy call to payment gateway, hope they dont object
+    # dummy call to payment gateway
     try:
         req = requests.get(PAYMENT_GATEWAY)
         app.logger.info('{} returned {}'.format(PAYMENT_GATEWAY, req.status_code))
@@ -90,7 +106,6 @@ def pay(id):
         return 'payment error', req.status_code
 
     # Prometheus
-    # items purchased
     item_count = countItems(cart.get('items', []))
     PromMetrics['SOLD_COUNTER'].inc(item_count)
     PromMetrics['AUS'].observe(item_count)
@@ -98,14 +113,16 @@ def pay(id):
 
     # Generate order id
     orderid = str(uuid.uuid4())
-    queueOrder({ 'orderid': orderid, 'user': id, 'cart': cart })
+    queueOrder({'orderid': orderid, 'user': id, 'cart': cart})
 
     # add to order history
     if not anonymous_user:
         try:
-            req = requests.post('http://{user}:8080/order/{id}'.format(user=USER, id=id),
-                    data=json.dumps({'orderid': orderid, 'cart': cart}),
-                    headers={'Content-Type': 'application/json'})
+            req = requests.post(
+                f'http://{USER}:8080/order/{id}',
+                data=json.dumps({'orderid': orderid, 'cart': cart}),
+                headers={'Content-Type': 'application/json'}
+            )
             app.logger.info('order history returned {}'.format(req.status_code))
         except requests.exceptions.RequestException as err:
             app.logger.error(err)
@@ -113,7 +130,7 @@ def pay(id):
 
     # delete cart
     try:
-        req = requests.delete('http://{cart}:8080/cart/{id}'.format(cart=CART, id=id));
+        req = requests.delete(f'http://{CART}:8080/cart/{id}')
         app.logger.info('cart delete returned {}'.format(req.status_code))
     except requests.exceptions.RequestException as err:
         app.logger.error(err)
@@ -121,28 +138,17 @@ def pay(id):
     if req.status_code != 200:
         return 'order history update error', req.status_code
 
-    return jsonify({ 'orderid': orderid })
-
+    return jsonify({'orderid': orderid})
 
 def queueOrder(order):
     app.logger.info('queue order')
-
-    # For screenshot demo requirements optionally add in a bit of delay
     delay = int(os.getenv('PAYMENT_DELAY_MS', 0))
     time.sleep(delay / 1000)
-
     headers = {}
     publisher.publish(order, headers)
 
-
 def countItems(items):
-    count = 0
-    for item in items:
-        if item.get('sku') != 'SHIP':
-            count += item.get('qty')
-
-    return count
-
+    return sum(item.get('qty', 0) for item in items if item.get('sku') != 'SHIP')
 
 # RabbitMQ
 publisher = Publisher(app.logger)

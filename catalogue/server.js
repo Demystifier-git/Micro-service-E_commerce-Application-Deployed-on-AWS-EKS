@@ -1,3 +1,38 @@
+// --------------------
+// OpenTelemetry + Jaeger instrumentation
+// Must be done before any other require/load
+// --------------------
+const opentelemetry = require('@opentelemetry/api');
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
+const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
+const { registerInstrumentations } = require('@opentelemetry/instrumentation');
+const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
+const { MongoDBInstrumentation } = require('@opentelemetry/instrumentation-mongodb');
+
+// Tracer provider
+const provider = new NodeTracerProvider();
+const exporter = new JaegerExporter({
+  serviceName: 'catalogue-service',
+  endpoint: process.env.JAEGER_COLLECTOR_ENDPOINT || 'http://localhost:14268/api/traces'
+});
+provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+provider.register();
+
+// Auto-instrumentations
+registerInstrumentations({
+  instrumentations: [
+    new ExpressInstrumentation(),
+    new MongoDBInstrumentation()
+  ]
+});
+
+// Current tracer for manual spans
+const tracer = opentelemetry.trace.getTracer('catalogue-service');
+
+// --------------------
+// Your original app code starts here
+// --------------------
 const mongoClient = require('mongodb').MongoClient;
 const mongoObjectID = require('mongodb').ObjectID;
 const bodyParser = require('body-parser');
@@ -147,7 +182,6 @@ function mongoConnect() {
 
         const mongoURL = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@${mongoHost}:27017/${mongoDB}?authSource=${process.env.MONGO_AUTH_DB || 'admin'}`;
 
-
         mongoClient.connect(mongoURL, { useUnifiedTopology: true }, (error, client) => {
             if (error) {
                 reject(error);
@@ -188,4 +222,3 @@ const port = process.env.CATALOGUE_SERVER_PORT || '8080';
 app.listen(port, () => {
     logger.info('Started on port', port);
 });
-

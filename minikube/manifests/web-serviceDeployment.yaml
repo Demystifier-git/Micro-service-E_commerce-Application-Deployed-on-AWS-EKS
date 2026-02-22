@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         app: ubuntu-web
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
     spec:
       containers:
         - name: ubuntu-web
@@ -35,6 +39,13 @@ spec:
               value: ratings
             - name: DISPATCH_HOST
               value: dispatch
+            
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp" 
           resources:
             requests:
               cpu: "250m"

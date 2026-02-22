@@ -2,17 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Instana\RobotShop\Ratings\Integration;
+namespace RobotShop\Ratings\Integration;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Service\ResetInterface;
+use OpenTelemetry\API\Trace\TracerProvider;
+use OpenTelemetry\API\Trace\SpanKind;
 
-class InstanaHeadersLoggingProcessor implements EventSubscriberInterface, ResetInterface
+class HeadersLoggingProcessor implements EventSubscriberInterface, ResetInterface
 {
     private $routeData;
+    private $tracer;
+    private $activeSpans = [];
+
+    public function __construct()
+    {
+        $this->routeData = [];
+        $this->tracer = TracerProvider::getDefaultTracer();
+    }
 
     public static function getSubscribedEvents(): array
     {
@@ -25,7 +35,7 @@ class InstanaHeadersLoggingProcessor implements EventSubscriberInterface, ResetI
     public function __invoke(array $records): array
     {
         if ($this->routeData && !isset($records['extra']['requests'])) {
-            $records['extra']['instana'] = array_values($this->routeData);
+            $records['extra']['trace'] = array_values($this->routeData);
         }
 
         return $records;
@@ -38,31 +48,46 @@ class InstanaHeadersLoggingProcessor implements EventSubscriberInterface, ResetI
         }
 
         $request = $event->getRequest();
-        if (null === $request->headers->get('X-INSTANA-L')) {
-            return;
-        }
 
-        $currentTraceHeaders = [
-            'l' => $request->headers->get('X-INSTANA-L', 'n/a'),
-            's' => $request->headers->get('X-INSTANA-S', 'n/a'),
-            't' => $request->headers->get('X-INSTANA-T', 'n/a'),
+        // ---- OpenTelemetry Instrumentation ----
+        $span = $this->tracer
+            ->spanBuilder('http.request.headers')
+            ->setSpanKind(SpanKind::KIND_INTERNAL)
+            ->startSpan();
+
+        $span->setAttribute('http.method', $request->getMethod());
+        $span->setAttribute('http.route', $request->getPathInfo());
+
+        $requestId = spl_object_id($request);
+        $this->activeSpans[$requestId] = $span;
+        // ---------------------------------------
+
+        $currentHeaders = [
+            'user-agent' => $request->headers->get('User-Agent', 'n/a'),
+            'content-type' => $request->headers->get('Content-Type', 'n/a'),
         ];
 
-        if (null !== $request->headers->get('X-INSTANA-SYNTHETIC')) {
-            $currentTraceHeaders['sy'] = $request->headers->get('X-INSTANA-SYNTHETIC');
-        }
-
-        $this->routeData[spl_object_id($request)] = $currentTraceHeaders;
+        $this->routeData[$requestId] = $currentHeaders;
     }
 
     public function reset(): void
     {
         $this->routeData = [];
+        $this->activeSpans = [];
     }
 
     public function removeHeaderData(FinishRequestEvent $event): void
     {
-        $requestId = spl_object_id($event->getRequest());
+        $request = $event->getRequest();
+        $requestId = spl_object_id($request);
+
+        // ---- End Span ----
+        if (isset($this->activeSpans[$requestId])) {
+            $this->activeSpans[$requestId]->end();
+            unset($this->activeSpans[$requestId]);
+        }
+        // ------------------
+
         unset($this->routeData[$requestId]);
     }
 }

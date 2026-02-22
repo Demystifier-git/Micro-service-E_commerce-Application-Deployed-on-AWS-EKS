@@ -1,12 +1,39 @@
-const instana = require('@instana/collector');
-// init tracing
-// MUST be done before loading anything else!
-instana({
-    tracing: {
-        enabled: true
-    }
+// --------------------
+// OpenTelemetry / Jaeger
+// --------------------
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
+const { registerInstrumentations } = require('@opentelemetry/instrumentation');
+const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
+const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
+const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
+const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
+const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+const { trace } = require('@opentelemetry/api');
+
+// Initialize tracer
+const provider = new NodeTracerProvider();
+const exporter = new JaegerExporter({
+    serviceName: 'cart-service',
+    endpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:14268/api/traces'
+});
+provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+provider.register();
+
+// Auto-instrument HTTP, Express, Redis
+registerInstrumentations({
+    instrumentations: [
+        new HttpInstrumentation(),
+        new ExpressInstrumentation(),
+        new RedisInstrumentation()
+    ],
 });
 
+// Get tracer
+const tracer = trace.getTracer('cart-service');
+
+// --------------------
+// continue with original imports
+// --------------------
 const redis = require('redis');
 const request = require('request');
 const bodyParser = require('body-parser');
@@ -22,7 +49,6 @@ const counter = new promClient.Counter({
     help: 'running count of items added to cart',
     registers: [register]
 });
-
 
 var redisConnected = false;
 
@@ -56,8 +82,11 @@ app.use((req, res, next) => {
         "us-east1",
         "us-west1"
     ];
-    let span = instana.currentSpan();
-    span.annotate('custom.sdk.tags.datacenter', dcs[Math.floor(Math.random() * dcs.length)]);
+
+    // Start a manual span for custom annotation
+    const span = tracer.startSpan('datacenter-annotation');
+    span.setAttribute('custom.sdk.tags.datacenter', dcs[Math.floor(Math.random() * dcs.length)]);
+    span.end();
 
     next();
 });
@@ -78,7 +107,6 @@ app.get('/metrics', (req, res) => {
     res.header('Content-Type', 'text/plain');
     res.send(register.metrics());
 });
-
 
 // get cart with id
 app.get('/cart/:id', (req, res) => {
@@ -137,7 +165,6 @@ app.get('/rename/:from/:to', (req, res) => {
 
 // update/create cart
 app.get('/add/:id/:sku/:qty', (req, res) => {
-    // check quantity
     var qty = parseInt(req.params.qty);
     if(isNaN(qty)) {
         req.log.warn('quantity not a number');
@@ -149,19 +176,16 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
         return;
     }
 
-    // look up product details
     getProduct(req.params.sku).then((product) => {
         req.log.info('got product', product);
         if(!product) {
             res.status(404).send('product not found');
             return;
         }
-        // is the product in stock?
         if(product.instock == 0) {
             res.status(404).send('out of stock');
             return;
         }
-        // does the cart already exist?
         redisClient.get(req.params.id, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
@@ -169,7 +193,6 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
             } else {
                 var cart;
                 if(data == null) {
-                    // create new cart
                     cart = {
                         total: 0,
                         tax: 0,
@@ -179,7 +202,6 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
                     cart = JSON.parse(data);
                 }
                 req.log.info('got cart', cart);
-                // add sku to cart
                 var item = {
                     qty: qty,
                     sku: req.params.sku,
@@ -190,10 +212,8 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
                 var list = mergeList(cart.items, item, qty);
                 cart.items = list;
                 cart.total = calcTotal(cart.items);
-                // work out tax
                 cart.tax = calcTax(cart.total);
 
-                // save the new cart
                 saveCart(req.params.id, cart).then((data) => {
                     counter.inc(qty);
                     res.json(cart);
@@ -211,7 +231,6 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
 
 // update quantity - remove item when qty == 0
 app.get('/update/:id/:sku/:qty', (req, res) => {
-    // check quantity
     var qty = parseInt(req.params.qty);
     if(isNaN(qty)) {
         req.log.warn('quanity not a number');
@@ -223,7 +242,6 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
         return;
     }
 
-    // get the cart
     redisClient.get(req.params.id, (err, data) => {
         if(err) {
             req.log.error('ERROR', err);
@@ -241,7 +259,6 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
                     }
                 }
                 if(idx == len) {
-                    // not in list
                     res.status(404).send('not in cart');
                 } else {
                     if(qty == 0) {
@@ -251,7 +268,6 @@ app.get('/update/:id/:sku/:qty', (req, res) => {
                         cart.items[idx].subtotal = cart.items[idx].price * qty;
                     }
                     cart.total = calcTotal(cart.items);
-                    // work out tax
                     cart.tax = calcTax(cart.total);
                     saveCart(req.params.id, cart).then((data) => {
                         res.json(cart);
@@ -272,7 +288,6 @@ app.post('/shipping/:id', (req, res) => {
         req.log.warn('shipping data missing', shipping);
         res.status(400).send('shipping data missing');
     } else {
-        // get the cart
         redisClient.get(req.params.id, (err, data) => {
             if(err) {
                 req.log.error('ERROR', err);
@@ -290,7 +305,6 @@ app.post('/shipping/:id', (req, res) => {
                         price: shipping.cost,
                         subtotal: shipping.cost
                     };
-                    // check shipping already in the cart
                     var idx;
                     var len = cart.items.length;
                     for(idx = 0; idx < len; idx++) {
@@ -299,16 +313,13 @@ app.post('/shipping/:id', (req, res) => {
                         }
                     }
                     if(idx == len) {
-                        // not already in cart
                         cart.items.push(item);
                     } else {
                         cart.items[idx] = item;
                     }
                     cart.total = calcTotal(cart.items);
-                    // work out tax
                     cart.tax = calcTax(cart.total);
 
-                    // save the updated cart
                     saveCart(req.params.id, cart).then((data) => {
                         res.json(cart);
                     }).catch((err) => {
@@ -323,7 +334,6 @@ app.post('/shipping/:id', (req, res) => {
 
 function mergeList(list, product, qty) {
     var inlist = false;
-    // loop through looking for sku
     var idx;
     var len = list.length;
     for(idx = 0; idx < len; idx++) {
@@ -353,7 +363,6 @@ function calcTotal(list) {
 }
 
 function calcTax(total) {
-    // tax @ 20%
     return (total - (total / 1.2));
 }
 
@@ -365,8 +374,6 @@ function getProduct(sku) {
             } else if(res.statusCode != 200) {
                 resolve(null);
             } else {
-                // return object - body is a string
-                // TODO - catch parse error
                 resolve(JSON.parse(body));
             }
         });
@@ -386,7 +393,6 @@ function saveCart(id, cart) {
     });
 }
 
-// connect to Redis
 var redisClient = redis.createClient({
     host: redisHost,
     password: process.env.REDIS_PASSWORD
@@ -400,9 +406,7 @@ redisClient.on('ready', (r) => {
     redisConnected = true;
 });
 
-// fire it up!
 const port = process.env.CART_SERVER_PORT || '8080';
 app.listen(port, () => {
     logger.info('Started on port', port);
 });
-

@@ -8,6 +8,8 @@ use PDO;
 use PDOException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use OpenTelemetry\API\Trace\TracerProvider;
+use OpenTelemetry\API\Trace\SpanKind;
 
 class Database implements LoggerAwareInterface
 {
@@ -28,11 +30,16 @@ class Database implements LoggerAwareInterface
      */
     private $password;
 
+    private $tracer;
+
     public function __construct(string $dsn, string $user, string $password)
     {
         $this->dsn = $dsn;
         $this->user = $user;
         $this->password = $password;
+
+        // OpenTelemetry tracer
+        $this->tracer = TracerProvider::getDefaultTracer();
     }
 
     public function getConnection(): PDO
@@ -43,11 +50,28 @@ class Database implements LoggerAwareInterface
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
 
+        // ---- Start DB Span ----
+        $span = $this->tracer
+            ->spanBuilder('database.connection')
+            ->setSpanKind(SpanKind::KIND_CLIENT)
+            ->startSpan();
+
+        $span->setAttribute('db.system', 'mysql');
+        $span->setAttribute('db.connection_string', $this->dsn);
+        // -----------------------
+
         try {
-            return new PDO($this->dsn, $this->user, $this->password, $opt);
+            $pdo = new PDO($this->dsn, $this->user, $this->password, $opt);
+            $span->end();
+            return $pdo;
         } catch (PDOException $e) {
             $msg = $e->getMessage();
             $this->logger->error("Database error $msg");
+
+            // Record exception in span
+            $span->recordException($e);
+            $span->setStatus(\OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR);
+            $span->end();
 
             return null;
         }

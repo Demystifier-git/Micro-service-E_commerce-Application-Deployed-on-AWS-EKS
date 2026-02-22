@@ -11,6 +11,10 @@ spec:
     metadata:
       labels:
         app: ubuntu-catalogue
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
     spec:
       containers:
         - name: ubuntu-catalogue
@@ -37,6 +41,12 @@ spec:
                   key: MONGO_PASS
             - name: MONGO_AUTH_DB
               value: "admin"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"  
           resources:
             requests:
               cpu: "250m"
@@ -44,6 +54,7 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+              
 
 ---
 apiVersion: v1

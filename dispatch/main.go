@@ -9,11 +9,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/instana/go-sensor"
+	amqp "github.com/rabbitmq/amqp091-go"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
-	amqp "github.com/rabbitmq/amqp091-go"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
 const (
@@ -35,6 +40,36 @@ var (
 		"us-west1",
 	}
 )
+
+// --------------------
+// OpenTelemetry Jaeger setup
+// --------------------
+func initTracer() func() {
+	collectorEndpoint := os.Getenv("JAEGER_COLLECTOR_ENDPOINT")
+	if collectorEndpoint == "" {
+		collectorEndpoint = "http://localhost:14268/api/traces"
+	}
+
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(collectorEndpoint)))
+	if err != nil {
+		log.Fatalf("failed to create Jaeger exporter: %v", err)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(Service),
+		)),
+	)
+
+	otel.SetTracerProvider(tp)
+	return func() {
+		if err := tp.Shutdown(nil); err != nil {
+			log.Fatalf("Error shutting down tracer provider: %v", err)
+		}
+	}
+}
 
 func connectToRabbitMQ(uri string) *amqp.Connection {
 	for {
@@ -104,33 +139,27 @@ func getOrderId(order []byte) string {
 }
 
 func createSpan(headers map[string]interface{}, order string) {
+	tracer := ot.GlobalTracer() // OpenTracing-compatible API
+
 	// headers is map[string]interface{}
-	// carrier is map[string]string
 	carrier := make(ot.TextMapCarrier)
-	// convert by copying k, v
 	for k, v := range headers {
 		carrier[k] = v.(string)
 	}
 
-	// get the order id
 	log.Printf("order %s\n", order)
 
-	// opentracing
 	var span ot.Span
-	tracer := ot.GlobalTracer()
 	spanContext, err := tracer.Extract(ot.HTTPHeaders, carrier)
 	if err == nil {
 		log.Println("Creating child span")
-		// create child span
 		span = tracer.StartSpan("getOrder", ot.ChildOf(spanContext))
-
 		fakeDataCenter := dataCenters[rand.Intn(len(dataCenters))]
 		span.SetTag("datacenter", fakeDataCenter)
 	} else {
 		log.Println(err)
 		log.Println("Failed to get context from headers")
 		log.Println("Creating root span")
-		// create root span
 		span = tracer.StartSpan("getOrder")
 	}
 
@@ -167,21 +196,16 @@ func processSale(parentSpan ot.Span) {
 func main() {
 	rand.Seed(time.Now().Unix())
 
-	// Instana tracing
-	ot.InitGlobalTracer(instana.NewTracerWithOptions(&instana.Options{
-		Service:           Service,
-		LogLevel:          instana.Info,
-		EnableAutoProfile: true,
-	}))
+	// Init OpenTelemetry tracer
+	cleanup := initTracer()
+	defer cleanup()
 
 	// Init amqpUri
-	// get host from environment
 	amqpHost, ok := os.LookupEnv("AMQP_HOST")
 	if !ok {
 		amqpHost = "rabbitmq"
 	}
 
-	// ✅ get username and password from environment
 	amqpUser := os.Getenv("AMQP_USER")
 	if amqpUser == "" {
 		amqpUser = "guest"
@@ -194,7 +218,6 @@ func main() {
 
 	amqpUri = fmt.Sprintf("amqp://%s:%s@%s:5672/", amqpUser, amqpPass, amqpHost)
 
-	// get error threshold from environment
 	errorPercent = 0
 	epct, ok := os.LookupEnv("DISPATCH_ERROR_PERCENT")
 	if ok {
@@ -211,10 +234,7 @@ func main() {
 	}
 	log.Printf("Error Percent is %d\n", errorPercent)
 
-	// MQ error channel
 	rabbitCloseError = make(chan *amqp.Error)
-
-	// MQ ready channel
 	rabbitReady = make(chan bool)
 
 	go rabbitConnector(amqpUri)
@@ -223,11 +243,9 @@ func main() {
 
 	go func() {
 		for {
-			// wait for rabbit to be ready
 			ready := <-rabbitReady
 			log.Printf("Rabbit MQ ready %v\n", ready)
 
-			// subscribe to bound queue
 			msgs, err := rabbitChan.Consume("orders", "", true, false, false, false, nil)
 			failOnError(err, "Failed to consume")
 
