@@ -15,17 +15,15 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: ghcr.io/open-telemetry/opentelemetry-collector/opentelemetry-collector:0.145.0
-          command:
-            - "/otelcol"
-            - "--config=/conf/otel-collector-config.yaml"
+          image: otel/opentelemetry-collector-contrib:0.145.0
+          command: ["/otelcontribcol", "--config=/conf/otel-collector-config.yaml"]
           ports:
-            - containerPort: 4317   # OTLP gRPC
-            - containerPort: 4318   # OTLP HTTP
-            - containerPort: 9464   # Prometheus metrics
+            - containerPort: 4317
+            - containerPort: 4318
+            - containerPort: 9464
           volumeMounts:
-            - name: otel-config
-              mountPath: /conf
+            - mountPath: /conf
+              name: otel-config
       volumes:
         - name: otel-config
           configMap:
