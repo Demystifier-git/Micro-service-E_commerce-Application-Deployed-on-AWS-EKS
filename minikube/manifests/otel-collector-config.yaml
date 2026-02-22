@@ -21,7 +21,7 @@ data:
           filesystem:
           network:
           load:
-          diskio:
+          disk:
 
       # Cluster-level metrics (pods, deployments, services)
       k8s_cluster:
