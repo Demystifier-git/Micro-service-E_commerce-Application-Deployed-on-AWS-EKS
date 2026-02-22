@@ -16,14 +16,15 @@ spec:
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.145.0
-          command: ["/otelcol", "--config=/conf/otel-collector-config.yaml"]
+          imagePullPolicy: IfNotPresent
+          command: ["/otelcontribcol", "--config=/conf/otel-collector-config.yaml"]
           ports:
             - containerPort: 4317
             - containerPort: 4318
             - containerPort: 9464
           volumeMounts:
-            - mountPath: /conf
-              name: otel-config
+            - name: otel-config
+              mountPath: /conf
       volumes:
         - name: otel-config
           configMap:
