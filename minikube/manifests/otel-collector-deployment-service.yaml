@@ -17,7 +17,7 @@ spec:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.145.0
           imagePullPolicy: IfNotPresent
-          command: ["/otelcontribcol", "--config=/conf/otel-collector-config.yaml"]
+          args:  ["--config=/conf/otel-collector-config.yaml"]
           ports:
             - containerPort: 4317
             - containerPort: 4318
