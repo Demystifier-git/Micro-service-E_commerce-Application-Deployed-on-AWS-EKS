@@ -38,3 +38,4 @@ spec:
       port: 14250
       targetPort: 14250
       nodePort: 31686
+      type: NodePort
