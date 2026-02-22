@@ -37,3 +37,4 @@ spec:
     - name: grpc      # required
       port: 14250
       targetPort: 14250
+      nodePort: 31686
