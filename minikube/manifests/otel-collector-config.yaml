@@ -11,23 +11,25 @@ data:
           grpc:
           http:
 
-    exporters:
-      jaeger:
-        endpoint: "jaeger-collector.observability.svc.cluster.local:14250"
-        tls:
-          insecure: true
-      prometheus:
-        endpoint: "0.0.0.0:9464"
-
     processors:
       batch:
+
+    exporters:
+      otlp:
+        endpoint: jaeger:4317
+        tls:
+          insecure: true
+
+      prometheus:
+        endpoint: "0.0.0.0:9464"
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [jaeger]
+          exporters: [otlp]
+
         metrics:
           receivers: [otlp]
           processors: [batch]
