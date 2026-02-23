@@ -28,7 +28,7 @@ data:
 
     exporters:
       otlp:
-        endpoint: jaeger:4317
+        endpoint: jaeger.observability.svc.cluster.local:14250
         tls:
           insecure: true
 
