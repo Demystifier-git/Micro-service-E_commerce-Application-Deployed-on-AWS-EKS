@@ -22,6 +22,7 @@ data:
           disk:
           filesystem:
           network:
+          load:
 
     processors:
       batch:
