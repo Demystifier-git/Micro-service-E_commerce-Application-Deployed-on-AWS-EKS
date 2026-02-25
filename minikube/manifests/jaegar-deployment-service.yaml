@@ -27,7 +27,19 @@ spec:
             - containerPort: 14268  # OTLP HTTP
           env:
             - name: SPAN_STORAGE_TYPE
-              value: "memory"  # for testing; for production, use cassandra/elasticsearch
+              value: "badger"
+            - name: BADGER_EPHEMERAL
+              value: "false"
+            - name: BADGER_DIRECTORY_VALUE
+              value: "/badger/data"
+            - name: BADGER_DIRECTORY_KEY
+              value: "/badger/key"
+          volumeMounts:
+            - name: badger
+              mountPath: /badger
+      volumes:
+        - name: badger
+          emptyDir: {}
 ---
 # Collector Service
 apiVersion: v1
@@ -69,9 +81,21 @@ spec:
             - containerPort: 16686
           env:
             - name: SPAN_STORAGE_TYPE
-              value: "memory"
+              value: "badger"
+            - name: BADGER_EPHEMERAL
+              value: "false"
+            - name: BADGER_DIRECTORY_VALUE
+              value: "/badger/data"
+            - name: BADGER_DIRECTORY_KEY
+              value: "/badger/key"
             - name: COLLECTOR_HOST_PORT
               value: "jaeger-collector.observability.svc.cluster.local:14250"
+          volumeMounts:
+            - name: badger
+              mountPath: /badger
+      volumes:
+        - name: badger
+          emptyDir: {}
 ---
 # Query Service
 apiVersion: v1
