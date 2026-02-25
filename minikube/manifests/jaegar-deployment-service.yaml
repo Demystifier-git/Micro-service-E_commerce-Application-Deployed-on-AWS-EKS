@@ -111,4 +111,4 @@ spec:
     - name: http
       port: 16686
       targetPort: 16686
-      nodePort: 31686
+      nodePort: 31687
