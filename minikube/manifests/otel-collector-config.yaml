@@ -30,6 +30,7 @@ data:
       batch:
 
     exporters:
+      # OTLP exporter sends traces to Jaeger gRPC
       otlp:
         endpoint: jaeger.observability.svc.cluster.local:14250
         tls:
@@ -38,19 +39,12 @@ data:
       prometheus:
         endpoint: "0.0.0.0:9464"
 
-      # NEW: Jaeger exporter for traces
-      jaeger:
-        endpoint: jaeger.observability.svc.cluster.local:14250
-        tls:
-          insecure: true
-
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          # changed from otlp to jaeger exporter only for traces
-          exporters: [jaeger]
+          exporters: [otlp]
 
         metrics:
           receivers: [otlp, k8s_cluster, hostmetrics]
