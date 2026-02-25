@@ -43,7 +43,7 @@ spec:
                   name: shipping-secret
                   key: password
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.observability.svc.cluster.local:4317"
+              value: "jaeger.observability.svc.cluster.local:14250"
             - name: OTEL_TRACES_EXPORTER
               value: "otlp"
             - name: OTEL_METRICS_EXPORTER
