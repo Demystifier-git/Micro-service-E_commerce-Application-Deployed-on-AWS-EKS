@@ -42,11 +42,13 @@ spec:
             - name: MONGO_AUTH_DB
               value: "admin"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.observability:4317"
+              value: "http://otel-collector.observability.svc.cluster.local:4317"
             - name: OTEL_TRACES_EXPORTER
               value: "otlp"
             - name: OTEL_METRICS_EXPORTER
-              value: "otlp"  
+              value: "otlp" 
+            - name: OTEL_SERVICE_NAME
+              value: "user"      
           resources:
             requests:
               cpu: "250m"
