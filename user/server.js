@@ -1,3 +1,60 @@
+// --------------------
+// OTEL Setup (NEW) - MUST BE FIRST
+// --------------------
+const opentelemetry = require('@opentelemetry/api');
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
+const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
+const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-grpc');
+const { MeterProvider, PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
+const { registerInstrumentations } = require('@opentelemetry/instrumentation');
+const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
+const { MongoDBInstrumentation } = require('@opentelemetry/instrumentation-mongodb');
+const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
+
+// --------------------
+// Tracing setup
+// --------------------
+const tracerProvider = new NodeTracerProvider();
+
+const traceExporter = new OTLPTraceExporter({
+  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector.observability.svc.cluster.local:4317'
+});
+
+tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
+tracerProvider.register();
+
+// --------------------
+// Metrics setup
+// --------------------
+const meterProvider = new MeterProvider();
+const metricExporter = new OTLPMetricExporter({
+  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector.observability.svc.cluster.local:4317'
+});
+
+meterProvider.addMetricReader(new PeriodicExportingMetricReader({
+  exporter: metricExporter,
+  exportIntervalMillis: 10000
+}));
+
+opentelemetry.metrics.setGlobalMeterProvider(meterProvider);
+
+// --------------------
+// Auto-instrumentation
+// --------------------
+registerInstrumentations({
+  tracerProvider,
+  instrumentations: [
+    new ExpressInstrumentation(),
+    new MongoDBInstrumentation(),
+    new RedisInstrumentation()
+  ],
+});
+
+// Export tracer for optional manual spans
+const tracer = opentelemetry.trace.getTracer('user-service');
+
+
 const mongoClient = require('mongodb').MongoClient;
 const redis = require('redis');
 const bodyParser = require('body-parser');
@@ -5,34 +62,6 @@ const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 
-// --------------------
-// OpenTelemetry instrumentation
-// --------------------
-const opentelemetry = require('@opentelemetry/api');
-const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
-const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
-const { ConsoleSpanExporter } = require('@opentelemetry/sdk-trace-base');
-const { registerInstrumentations } = require('@opentelemetry/instrumentation');
-const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
-const { MongoDBInstrumentation } = require('@opentelemetry/instrumentation-mongodb');
-const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
-
-// Tracer setup
-const provider = new NodeTracerProvider();
-provider.addSpanProcessor(new SimpleSpanProcessor(new ConsoleSpanExporter()));
-provider.register();
-
-// Auto-instrumentation
-registerInstrumentations({
-    tracerProvider: provider,
-    instrumentations: [
-        new ExpressInstrumentation(),
-        new MongoDBInstrumentation(),
-        new RedisInstrumentation()
-    ],
-});
-
-const tracer = opentelemetry.trace.getTracer('user-service');
 
 // --------------------
 // MongoDB variables
