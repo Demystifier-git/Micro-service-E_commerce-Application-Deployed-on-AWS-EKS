@@ -16,7 +16,7 @@ const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis')
 const tracerProvider = new NodeTracerProvider();
 
 const traceExporter = new OTLPTraceExporter({
-  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector.observability.svc.cluster.local:4317'
+  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'grpc://jaeger-collector.observability.svc.cluster.local:14250'
 });
 
 tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
