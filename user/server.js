@@ -23,21 +23,6 @@ tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
 tracerProvider.register();
 
 // --------------------
-// Metrics setup
-// --------------------
-const meterProvider = new MeterProvider();
-const metricExporter = new OTLPMetricExporter({
-  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://otel-collector.observability.svc.cluster.local:4317'
-});
-
-meterProvider.addMetricReader(new PeriodicExportingMetricReader({
-  exporter: metricExporter,
-  exportIntervalMillis: 10000
-}));
-
-opentelemetry.metrics.setGlobalMeterProvider(meterProvider);
-
-// --------------------
 // Auto-instrumentation
 // --------------------
 registerInstrumentations({
