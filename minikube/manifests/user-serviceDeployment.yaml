@@ -55,7 +55,9 @@ spec:
             - name: OTEL_METRICS_EXPORTER
               value: "otlp" 
             - name: OTEL_SERVICE_NAME
-              value: "user"       
+              value: "user" 
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"        
                 
           resources:
             requests:
