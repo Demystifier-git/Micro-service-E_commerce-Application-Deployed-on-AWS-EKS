@@ -30,8 +30,9 @@ spec:
           configMap:
             name: loki-config
         - name: loki-storage
-          persistentVolumeClaim:
-            claimName: loki-storage
+          hostPath:
+            path: /mnt/loki
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: ConfigMap
