@@ -27,6 +27,10 @@ spec:
         - name: loki-config
           configMap:
             name: loki-config
+        - name: loki-storage
+          persistentVolumeClaim:
+            claimName: loki-storage
+    
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -59,14 +63,11 @@ data:
             prefix: index_
             period: 168h
     storage_config:
-      boltdb:
-        directory: /tmp/loki/index
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/cache
+        shared_store: filesystem
       filesystem:
-        directory: /tmp/loki/chunks
-    limits_config:
-      enforce_metric_name: false
-      reject_old_samples: true
-      reject_old_samples_max_age: 168h
+    directory: /loki/chunks
 
----
       
