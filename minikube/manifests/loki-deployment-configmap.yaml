@@ -23,6 +23,8 @@ spec:
           volumeMounts:
             - name: loki-config
               mountPath: /etc/loki
+            - name: loki-storage
+              mountPath: /loki
       volumes:
         - name: loki-config
           configMap:
@@ -30,7 +32,6 @@ spec:
         - name: loki-storage
           persistentVolumeClaim:
             claimName: loki-storage
-    
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -68,6 +69,6 @@ data:
         cache_location: /loki/cache
         shared_store: filesystem
       filesystem:
-    directory: /loki/chunks
+        directory: /loki/chunks
 
       
