@@ -25,14 +25,20 @@ spec:
               mountPath: /etc/loki
             - name: loki-storage
               mountPath: /loki
+      initContainers:
+        - name: init-loki-dirs
+          image: busybox:1.36
+          command: ["sh", "-c", "mkdir -p /loki/chunks /loki/index /loki/cache && chmod -R 777 /loki"]
+          volumeMounts:
+            - name: loki-storage
+              mountPath: /loki
       volumes:
         - name: loki-config
           configMap:
             name: loki-config
         - name: loki-storage
-          hostPath:
-            path: /mnt/loki
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: loki-storage
 ---
 apiVersion: v1
 kind: ConfigMap
