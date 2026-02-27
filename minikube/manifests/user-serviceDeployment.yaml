@@ -49,7 +49,7 @@ spec:
                   name: redis-secret
                   key: redis-password
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: 'grpc://jaeger-collector.observability.svc.cluster.local:14250'
+              value: "http://otel-collector.observability.svc.cluster.local:4317"
             - name: OTEL_TRACES_EXPORTER
               value: "otlp"
             - name: OTEL_METRICS_EXPORTER
@@ -57,7 +57,9 @@ spec:
             - name: OTEL_SERVICE_NAME
               value: "user" 
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
-              value: "grpc"        
+              value: "grpc" 
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"         
                 
           resources:
             requests:
