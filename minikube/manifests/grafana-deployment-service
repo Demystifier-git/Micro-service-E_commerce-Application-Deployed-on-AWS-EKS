@@ -23,6 +23,8 @@ spec:
           value: admin
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: admin
+        - name: GF_LOG_MODE
+          value: console  
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
