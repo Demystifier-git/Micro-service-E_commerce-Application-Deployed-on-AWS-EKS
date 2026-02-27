@@ -19,7 +19,7 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 const traceExporter = new OTLPTraceExporter({
-  url: 'grpc://otel-collector.observability.svc.cluster.local:4317'
+  url: 'otel-collector.observability.svc.cluster.local:4317'
 });
 
 tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
