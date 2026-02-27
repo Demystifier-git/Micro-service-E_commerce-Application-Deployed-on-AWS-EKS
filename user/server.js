@@ -8,6 +8,7 @@ const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { MongoDBInstrumentation } = require('@opentelemetry/instrumentation-mongodb');
 const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
+const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http'); // <-- Added
 const { Resource } = require('@opentelemetry/resources');
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 
@@ -19,21 +20,28 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 const traceExporter = new OTLPTraceExporter({
-  url: 'otel-collector.observability.svc.cluster.local:4317'
+  url: 'otel-collector.observability.svc.cluster.local:4317', // keep grpc URL
 });
 
 tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
-tracerProvider.register();
 
+// --------------------
+// Register Instrumentations
+// --------------------
 registerInstrumentations({
   tracerProvider,
   instrumentations: [
     new ExpressInstrumentation(),
+    new HttpInstrumentation(),      // <-- Added
     new MongoDBInstrumentation(),
-    new RedisInstrumentation()
+    new RedisInstrumentation(),
   ],
 });
 
+// --------------------
+// Register the tracer provider AFTER instrumentations
+// --------------------
+tracerProvider.register();
 
 const mongoClient = require('mongodb').MongoClient;
 const redis = require('redis');
