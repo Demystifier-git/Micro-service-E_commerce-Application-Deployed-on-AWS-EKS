@@ -1,7 +1,6 @@
 // --------------------
-// OTEL Setup (NEW) - MUST BE FIRST
+// OTEL Setup (MUST BE FIRST)
 // --------------------
-const opentelemetry = require('@opentelemetry/api');
 const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
@@ -9,22 +8,23 @@ const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { MongoDBInstrumentation } = require('@opentelemetry/instrumentation-mongodb');
 const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 
-// --------------------
-// Tracing setup
-// --------------------
-const tracerProvider = new NodeTracerProvider();
+const tracerProvider = new NodeTracerProvider({
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'user',
+    [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0'
+  })
+});
 
 const traceExporter = new OTLPTraceExporter({
-  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'grpc://jaeger-collector.observability.svc.cluster.local:14250'
+  url: 'grpc://otel-collector.observability.svc.cluster.local:4317'
 });
 
 tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
 tracerProvider.register();
 
-// --------------------
-// Auto-instrumentation
-// --------------------
 registerInstrumentations({
   tracerProvider,
   instrumentations: [
@@ -33,9 +33,6 @@ registerInstrumentations({
     new RedisInstrumentation()
   ],
 });
-
-// Export tracer for optional manual spans
-const tracer = opentelemetry.trace.getTracer('user-service');
 
 
 const mongoClient = require('mongodb').MongoClient;
