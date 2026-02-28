@@ -13,6 +13,10 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+
       containers:
         - name: loki
           image: grafana/loki:2.9.0
@@ -25,6 +29,7 @@ spec:
               mountPath: /loki
             - name: loki-config
               mountPath: /etc/loki
+
       volumes:
         - name: loki-storage
           persistentVolumeClaim:
@@ -32,7 +37,7 @@ spec:
         - name: loki-config
           configMap:
             name: loki-config
-
+---
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -46,16 +51,12 @@ data:
     server:
       http_listen_port: 3100
 
-    ingester:
-      lifecycler:
-        address: 127.0.0.1
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-        final_sleep: 0s
-      chunk_idle_period: 5m
-      chunk_retain_period: 30s
+    common:
+      path_prefix: /loki
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
 
     schema_config:
       configs:
@@ -69,10 +70,11 @@ data:
 
     storage_config:
       filesystem:
-        directory: /loki
+        directory: /loki/chunks
 
     compactor:
       working_directory: /loki/compactor
+      shared_store: filesystem
 
     limits_config:
       allow_structured_metadata: false
