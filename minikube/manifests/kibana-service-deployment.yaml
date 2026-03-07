@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.11.2
+          ports:
+            - containerPort: 5601
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: http://elasticsearch:9200
+            - name: ELASTICSEARCH_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: ELASTICSEARCH_SERVICE_TOKEN
+            - name: XPACK_SECURITY_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: XPACK_SECURITY_ENCRYPTIONKEY
+            - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+            - name: XPACK_REPORTING_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption-keys
+                  key: XPACK_REPORTING_ENCRYPTIONKEY
+          volumeMounts:
+            - name: kibana-certificates
+              mountPath: /usr/share/kibana/config/certs
+              readOnly: true
+      volumes:
+        - name: kibana-certificates
+          secret:
+            secretName: kibana-certificates    
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-nodeport
+  namespace: elastic
+
+spec:
+  type: NodePort
+
+  selector:
+    app: kibana
+
+  ports:
+    - port: 5601
+      targetPort: 5601
+      nodePort: 30601

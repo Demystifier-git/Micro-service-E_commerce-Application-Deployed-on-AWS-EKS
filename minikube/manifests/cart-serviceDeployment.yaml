@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-cart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-cart
+  template:
+    metadata:
+      labels:
+        app: ubuntu-cart
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
+    spec:
+      containers:
+        - name: ubuntu-cart
+          image: ubuntu-cart:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "jaeger.observability.svc.cluster.local:14250"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"     
+            - name: OTEL_SERVICE_NAME
+              value: "cart"      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+spec:
+  selector:
+    app: ubuntu-cart
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+

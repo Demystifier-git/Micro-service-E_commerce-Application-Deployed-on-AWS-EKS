@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: elastic
+spec:
+  serviceName: elasticsearch
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.11.2
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300
+          env:
+            # Node name = pod name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: node.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: cluster.name
+              value: elastic-cluster
+            - name: discovery.seed_hosts
+              value: elasticsearch-0.elasticsearch,elasticsearch-1.elasticsearch,elasticsearch-2.elasticsearch
+            - name: cluster.initial_master_nodes
+              value: elasticsearch-0,elasticsearch-1,elasticsearch-2
+            - name: ELASTICSEARCH_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: ELASTICSEARCH_SERVICE_TOKEN
+            - name: ES_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+            - name: xpack.security.enabled
+              value: "true"
+            - name: xpack.security.transport.ssl.enabled
+              value: "true"
+            - name: xpack.security.transport.ssl.verification_mode
+              value: "certificate"
+
+            # SSL cert/key/CA per node
+            - name: xpack.security.transport.ssl.certificate
+              value: /usr/share/elasticsearch/config/certs/$(NODE_NAME).crt
+            - name: xpack.security.transport.ssl.key
+              value: /usr/share/elasticsearch/config/certs/$(NODE_NAME).key
+            - name: xpack.security.transport.ssl.certificate_authorities
+              value: /usr/share/elasticsearch/config/certs/ca.crt
+
+          volumeMounts:
+            - name: elastic-certs
+              mountPath: /usr/share/elasticsearch/config/certs
+              readOnly: true
+            - name: elastic-data
+              mountPath: /usr/share/elasticsearch/data
+
+      volumes:
+        - name: elastic-certs
+          secret:
+            secretName: elastic-certificates
+
+  volumeClaimTemplates:
+    - metadata:
+        name: elastic-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: elastic
+spec:
+  clusterIP: None
+  selector:
+    app: elasticsearch
+  ports:
+    - port: 9200
+      name: http
+    - port: 9300
+      name: transport
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-nodeport
+  namespace: elastic
+spec:
+  type: NodePort
+  selector:
+    app: elasticsearch
+
+  ports:
+    - port: 9200
+      targetPort: 9200
+      nodePort: 30920      
+

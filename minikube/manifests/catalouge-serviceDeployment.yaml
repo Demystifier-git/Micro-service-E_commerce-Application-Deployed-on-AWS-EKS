@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-catalogue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-catalogue
+  template:
+    metadata:
+      labels:
+        app: ubuntu-catalogue
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
+    spec:
+      containers:
+        - name: ubuntu-catalogue
+          image: ubuntu-catalogue:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MONGO_DB
+              value: "catalogue"
+            - name: MONGO_HOST
+              value: "mongodb-0.mongodb"
+            - name: MONGO_PORT
+              value: "27017"
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_USER
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_PASS
+            - name: MONGO_AUTH_DB
+              value: "admin"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "jaeger.observability.svc.cluster.local:14250"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp" 
+            - name: OTEL_SERVICE_NAME
+              value: "user"      
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogue
+spec:
+  selector:
+    app: ubuntu-catalogue
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP     

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-payment
+  template:
+    metadata:
+      labels:
+        app: ubuntu-payment
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
+    spec:
+      containers:
+        - name: ubuntu-payment
+          image: ubuntu-payment:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "jaeger.observability.svc.cluster.local:14250"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp" 
+            - name: OTEL_SERVICE_NAME
+              value: "payment"          
+          
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+spec:
+  selector:
+    app: ubuntu-payment
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP     
+      

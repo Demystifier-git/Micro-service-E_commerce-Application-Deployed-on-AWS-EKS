@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-dispatch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-dispatch
+  template:
+    metadata:
+      labels:
+        app: ubuntu-dispatch
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
+    spec:
+      containers:
+        - name: ubuntu-dispatch
+          image: ubuntu-dispatch:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: AMQP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-username
+            - name: AMQP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: rabbitmq-password
+            - name: AMQP_HOST
+              value: "rabbitmq" 
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "jaeger.observability.svc.cluster.local:14250"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp" 
+            - name: OTEL_SERVICE_NAME
+              value: "dispatch"           
+          
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch
+spec:
+  selector:
+    app: ubuntu-dispatch
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP     
+      

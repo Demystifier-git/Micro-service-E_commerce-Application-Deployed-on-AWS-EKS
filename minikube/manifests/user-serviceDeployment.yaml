@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubuntu-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ubuntu-user
+  template:
+    metadata:
+      labels:
+        app: ubuntu-user
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"   
+    spec:
+      containers:
+        - name: ubuntu-user
+          image: ubuntu-user:v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MONGO_DB
+              value: "users"
+            - name: MONGO_HOST
+              value: "mongodb-0.mongodb"
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_USER
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_PASS
+            - name: MONGO_AUTH_DB
+              value: "admin"      
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "otel-collector.observability.svc.cluster.local:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp" 
+            - name: OTEL_SERVICE_NAME
+              value: "user" 
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc" 
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"         
+                
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+       
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+spec:
+  selector:
+    app: ubuntu-user
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP     
+      
