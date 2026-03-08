@@ -1,9 +1,14 @@
+############################################
 # EBS CSI Driver
+############################################
+
 resource "helm_release" "ebs_csi" {
+
   name       = "aws-ebs-csi-driver"
-  repository = "https://kubernetes-sigs.github.io/aws-ebs-csi-driver" # repo URL
+  repository = "https://kubernetes-sigs.github.io/aws-ebs-csi-driver"
   chart      = "aws-ebs-csi-driver"
-  namespace  = "kube-system"
+
+  namespace = "kube-system"
 
   values = [
     yamlencode({
@@ -15,14 +20,23 @@ resource "helm_release" "ebs_csi" {
       }
     })
   ]
+
+  depends_on = [
+    aws_eks_node_group.nodes
+  ]
 }
 
+############################################
 # Karpenter
+############################################
+
 resource "helm_release" "karpenter" {
+
   name       = "karpenter"
   repository = "https://charts.karpenter.sh"
   chart      = "karpenter"
-  namespace  = "karpenter"
+
+  namespace = "karpenter"
 
   values = [
     yamlencode({
@@ -31,5 +45,9 @@ resource "helm_release" "karpenter" {
         name   = "karpenter"
       }
     })
+  ]
+
+  depends_on = [
+    aws_eks_node_group.nodes
   ]
 }
