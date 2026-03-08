@@ -10,7 +10,7 @@ resource "aws_eks_node_group" "nodes" {
   node_group_name = each.key
 
   # Attach the IAM role created in iam.tf
-  node_role_arn = aws_iam_role.node_role.arn
+  node_role_arn = aws_iam_role.eks_node_role.arn
 
   subnet_ids = var.private_subnets
 
@@ -23,10 +23,12 @@ resource "aws_eks_node_group" "nodes" {
     max_size     = each.value.max_size
   }
 
+  # Wait until IAM policies are attached
   depends_on = [
-    aws_iam_role_policy_attachment.worker_node_policy,
-    aws_iam_role_policy_attachment.cni_policy,
-    aws_iam_role_policy_attachment.ecr_policy
+    aws_iam_role_policy_attachment.eks_worker_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.ecr_readonly_policy,
+    aws_iam_role_policy_attachment.node_app_attach
   ]
 }
 
@@ -36,10 +38,8 @@ resource "aws_eks_node_group" "nodes" {
 
 provider "kubernetes" {
   host                   = aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(
-    aws_eks_cluster.cluster.certificate_authority[0].data
-  )
-  token = data.aws_eks_cluster_auth.cluster.token
+  cluster_ca_certificate = base64decode(aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
 }
 
 data "aws_eks_cluster_auth" "cluster" {
@@ -47,17 +47,15 @@ data "aws_eks_cluster_auth" "cluster" {
 }
 
 resource "kubernetes_config_map" "aws_auth" {
-
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
 
   data = {
-
     mapRoles = yamlencode([
       {
-        rolearn  = aws_iam_role.node_role.arn
+        rolearn  = aws_iam_role.eks_node_role.arn
         username = "system:node:{{EC2PrivateDNSName}}"
         groups = [
           "system:bootstrappers",
@@ -65,6 +63,5 @@ resource "kubernetes_config_map" "aws_auth" {
         ]
       }
     ])
-
   }
 }
