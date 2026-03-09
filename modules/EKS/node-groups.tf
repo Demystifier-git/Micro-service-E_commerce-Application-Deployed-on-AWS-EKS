@@ -57,11 +57,19 @@ resource "kubernetes_config_map_v1" "aws_auth" {
       {
         rolearn  = aws_iam_role.eks_node_role.arn
         username = "system:node:{{EC2PrivateDNSName}}"
-        groups = [
+        groups   = [
           "system:bootstrappers",
           "system:nodes"
         ]
       }
     ])
   }
+
+  depends_on = [
+    aws_eks_cluster.cluster,
+    aws_iam_role_policy_attachment.eks_worker_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.ecr_readonly_policy,
+    aws_iam_role_policy_attachment.node_app_attach
+  ]
 }
