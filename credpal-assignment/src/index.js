@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // PostgreSQL connection pool
 const pool = new Pool({
-    host: 'postgres',
+    host: 'postgres', // Docker service name
     port: process.env.POSTGRES_PORT,
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
@@ -43,7 +43,7 @@ app.get('/status', (req, res) => {
     });
 });
 
-// Process endpoint
+// Process endpoint (POST)
 app.post('/process', async (req, res) => {
     const data = req.body;
 
@@ -66,6 +66,18 @@ app.post('/process', async (req, res) => {
     }
 });
 
+// Process endpoint (GET) - list all records
+app.get('/process', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM process_data ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch data' });
+    }
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
